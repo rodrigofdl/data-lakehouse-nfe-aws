@@ -1,18 +1,17 @@
 import requests
 
+API_URL = "https://api.portaldatransparencia.gov.br/api-de-dados/notas-fiscais"
+API_KEY = ""
+HEADERS = {"accept": "*/*", "chave-api-dados": API_KEY}
 
 def get_nfe_data(codigo_orgao, ano_emissao):
-    url = "https://api.portaldatransparencia.gov.br/api-de-dados/notas-fiscais"
-    key = ""
-
     all_data = []
 
     while True:
         params = {"codigoOrgao": codigo_orgao, "pagina": 1}
-        headers = {"accept": "*/*", "chave-api-dados": key}
 
         try:
-            response = requests.get(url, params=params, headers=headers)
+            response = requests.get(API_URL, params=params, headers=HEADERS)
             response.raise_for_status()
             data = response.json()
 
