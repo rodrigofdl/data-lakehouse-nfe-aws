@@ -4,32 +4,38 @@ API_URL = "https://api.portaldatransparencia.gov.br/api-de-dados/notas-fiscais"
 API_KEY = ""
 HEADERS = {"accept": "*/*", "chave-api-dados": API_KEY}
 
-def get_nfe_data(codigo_orgao, ano_emissao):
-    all_data = []
+
+def requisition_nfe(organ_code: str, page_number: int) -> list[dict]:
+    parameters = {"codigoOrgao": organ_code, "pagina": page_number}
+
+    response = requests.get(API_URL, params=parameters, headers=HEADERS)
+    response.raise_for_status()
+    return response.json()
+
+
+def get_nfe_data(organ_code: str, year_emission: str) -> list[dict]:
+    all_nfe: list[dict] = []
+    page_number = 1
 
     while True:
-        params = {"codigoOrgao": codigo_orgao, "pagina": 1}
-
         try:
-            response = requests.get(API_URL, params=params, headers=HEADERS)
-            response.raise_for_status()
-            data = response.json()
+            api_response = requisition_nfe(organ_code, page_number)
 
-            if not data:
+            if not api_response:
                 break
 
-            filtered_data = [
+            filtered_nfe = [
                 item
-                for item in data
-                if item.get("dataEmissao", "").endswith("/" + ano_emissao)
+                for item in api_response
+                if item.get("dataEmissao", "").endswith("/" + year_emission)
             ]
 
-            all_data.extend(filtered_data)
+            all_nfe.extend(filtered_nfe)
             print(
-                f"Página {params["pagina"]} - {len(filtered_data)} registros de 2025 encontrados"
+                f"Página {page_number} - {len(filtered_nfe)} registros de 2025 encontrados"
             )
 
-            params["pagina"] += 1
+            page_number += 1
 
         except requests.exceptions.HTTPError as http_err:
             print(f"Erro HTTP: {http_err}")
@@ -41,8 +47,8 @@ def get_nfe_data(codigo_orgao, ano_emissao):
             print(f"Erro inesperado: {e}")
             break
 
-    return all_data
+    return all_nfe
 
 
 if __name__ == "__main__":
-    get_nfe_data(codigo_orgao="3600", ano_emissao="2025")
+    get_nfe_data(organ_code="3600", year_emission="2025")
