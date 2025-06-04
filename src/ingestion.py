@@ -1,9 +1,13 @@
+import os
 import requests
+from dotenv import load_dotenv
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
 
 
 API_URL = "https://api.portaldatransparencia.gov.br/api-de-dados/notas-fiscais"
-API_KEY = ""
+
+load_dotenv()
+API_KEY = os.getenv("API_KEY")
 
 
 @retry(
