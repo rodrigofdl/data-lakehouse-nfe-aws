@@ -1,13 +1,29 @@
 import os
+import sys
 import requests
+import logging
 from dotenv import load_dotenv
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("ingestion.log", mode="w"),
+    ],
+)
+logger = logging.getLogger(__name__)
 
 API_URL = "https://api.portaldatransparencia.gov.br/api-de-dados/notas-fiscais"
-
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
+
+if not API_KEY or API_KEY.strip() == "":
+    logger.error(
+        "API_KEY não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
+    )
+    sys.exit(1)
 
 
 @retry(
@@ -35,28 +51,48 @@ def filter_nfe_per_year(api_response: list[dict], year_emission: str) -> list[di
 def get_nfe_data(organ_code: str, year_emission: str) -> list[dict]:
     all_nfe: list[dict] = []
     page_number = 1
+    logger.info(
+        f"Iniciando a coleta de NFE para o órgão {organ_code} no ano {year_emission}."
+    )
 
     while True:
         try:
             api_response = request_nfe(organ_code, page_number)
 
             if not api_response:
+                logger.info(
+                    f"Nenhum dado retornado na página {page_number}. Finalizando coleta."
+                )
                 break
 
             filtered_nfe = filter_nfe_per_year(api_response, year_emission)
             all_nfe.extend(filtered_nfe)
 
-            print(
-                f"Página {page_number} - {len(filtered_nfe)} registros de 2025 encontrados"
+            logger.info(
+                f"Página {page_number} - {len(filtered_nfe)} registros de {year_emission} encontrados"
             )
+
             page_number += 1
 
         except Exception as e:
-            print(f"Erro ao requisitar a página {page_number}: {e}")
+            logger.error(f"Erro ao requisitar a página {page_number}: {e}")
             break
 
     return all_nfe
 
 
 if __name__ == "__main__":
-    get_nfe_data(organ_code="3600", year_emission="2025")
+    organ_code = "3600"
+    year_emission = "2025"
+
+    nfe_data = get_nfe_data(organ_code, year_emission)
+
+    if not nfe_data:
+        logger.info(
+            "Nenhuma nota fiscal foi encontrada ou um erro ocorreu durante a busca."
+        )
+        sys.exit(0)
+
+    logger.info(
+        f"Processamento concluído. {len(nfe_data)} notas fiscais de {year_emission} foram obtidas."
+    )
