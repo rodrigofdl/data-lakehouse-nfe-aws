@@ -47,14 +47,8 @@ def get_nfe_data(organ_code: str, year_emission: str) -> list[dict]:
             )
             page_number += 1
 
-        except requests.exceptions.HTTPError as http_err:
-            print(f"Erro HTTP: {http_err}")
-            break
-        except requests.exceptions.RequestException as req_err:
-            print(f"Erro de conexão: {req_err}")
-            break
         except Exception as e:
-            print(f"Erro inesperado: {e}")
+            print(f"Erro ao requisitar a página {page_number}: {e}")
             break
 
     return all_nfe
