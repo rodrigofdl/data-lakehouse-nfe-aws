@@ -1,13 +1,21 @@
 import requests
+from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
+
 
 API_URL = "https://api.portaldatransparencia.gov.br/api-de-dados/notas-fiscais"
 API_KEY = ""
-HEADERS = {"accept": "*/*", "chave-api-dados": API_KEY}
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(2),
+    retry=retry_if_exception_type(requests.exceptions.RequestException),
+)
 def request_nfe(organ_code: str, page_number: int) -> list[dict]:
+    headers = {"accept": "*/*", "chave-api-dados": API_KEY}
     parameters = {"codigoOrgao": organ_code, "pagina": page_number}
-    response = requests.get(API_URL, params=parameters, headers=HEADERS)
+
+    response = requests.get(API_URL, params=parameters, headers=headers)
     response.raise_for_status()
     return response.json()
 
@@ -33,7 +41,7 @@ def get_nfe_data(organ_code: str, year_emission: str) -> list[dict]:
 
             filtered_nfe = filter_nfe_per_year(api_response, year_emission)
             all_nfe.extend(filtered_nfe)
-            
+
             print(
                 f"Página {page_number} - {len(filtered_nfe)} registros de 2025 encontrados"
             )
