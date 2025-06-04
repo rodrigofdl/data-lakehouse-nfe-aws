@@ -5,12 +5,19 @@ API_KEY = ""
 HEADERS = {"accept": "*/*", "chave-api-dados": API_KEY}
 
 
-def requisition_nfe(organ_code: str, page_number: int) -> list[dict]:
+def request_nfe(organ_code: str, page_number: int) -> list[dict]:
     parameters = {"codigoOrgao": organ_code, "pagina": page_number}
-
     response = requests.get(API_URL, params=parameters, headers=HEADERS)
     response.raise_for_status()
     return response.json()
+
+
+def filter_nfe_per_year(api_response: list[dict], year_emission: str) -> list[dict]:
+    return [
+        nfe
+        for nfe in api_response
+        if nfe.get("dataEmissao", "").endswith("/" + year_emission)
+    ]
 
 
 def get_nfe_data(organ_code: str, year_emission: str) -> list[dict]:
@@ -19,22 +26,17 @@ def get_nfe_data(organ_code: str, year_emission: str) -> list[dict]:
 
     while True:
         try:
-            api_response = requisition_nfe(organ_code, page_number)
+            api_response = request_nfe(organ_code, page_number)
 
             if not api_response:
                 break
 
-            filtered_nfe = [
-                item
-                for item in api_response
-                if item.get("dataEmissao", "").endswith("/" + year_emission)
-            ]
-
+            filtered_nfe = filter_nfe_per_year(api_response, year_emission)
             all_nfe.extend(filtered_nfe)
+            
             print(
                 f"Página {page_number} - {len(filtered_nfe)} registros de 2025 encontrados"
             )
-
             page_number += 1
 
         except requests.exceptions.HTTPError as http_err:
