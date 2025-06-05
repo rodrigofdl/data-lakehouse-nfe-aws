@@ -10,7 +10,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler("ingestion.log", mode="w"),
+        logging.FileHandler("logs/ingestion.log", mode="w"),
     ],
 )
 logger = logging.getLogger(__name__)
