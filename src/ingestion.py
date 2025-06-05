@@ -45,7 +45,7 @@ def filter_nfe_per_year(api_response: list[dict], year_emission: int) -> list[di
     return [
         nfe
         for nfe in api_response
-        if nfe.get("dataEmissao", "").endswith("/" + year_emission)
+        if "dataEmissao" in nfe and datetime.strptime(nfe["dataEmissao"], "%d/%m/%Y").year == year_emission
     ]
 
 
@@ -92,7 +92,7 @@ def get_nfe_data(
 
 
 if __name__ == "__main__":
-    organ_code = "3600"
+    organ_code = "36000"
     year_emission = 2025
 
     nfe_data = get_nfe_data(organ_code, year_emission)
