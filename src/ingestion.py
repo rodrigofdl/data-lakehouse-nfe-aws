@@ -2,6 +2,7 @@ import os
 import sys
 import requests
 import logging
+from datetime import datetime
 from dotenv import load_dotenv
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
 
@@ -40,7 +41,7 @@ def request_nfe(organ_code: str, page_number: int) -> list[dict]:
     return response.json()
 
 
-def filter_nfe_per_year(api_response: list[dict], year_emission: str) -> list[dict]:
+def filter_nfe_per_year(api_response: list[dict], year_emission: int) -> list[dict]:
     return [
         nfe
         for nfe in api_response
@@ -48,7 +49,9 @@ def filter_nfe_per_year(api_response: list[dict], year_emission: str) -> list[di
     ]
 
 
-def get_nfe_data(organ_code: str, year_emission: str) -> list[dict]:
+def get_nfe_data(
+    organ_code: str, year_emission: int, max_pages: int = 1000
+) -> list[dict]:
     all_nfe: list[dict] = []
     page_number = 1
     logger.info(
@@ -56,6 +59,13 @@ def get_nfe_data(organ_code: str, year_emission: str) -> list[dict]:
     )
 
     while True:
+        if page_number > max_pages:
+            logger.warning(
+                "Limite de páginas atingido. Pode haver dados faltando."
+                f"Verifique se é necessário aumentar esse limite ou revisar o filtro."
+            )
+            break
+
         try:
             api_response = request_nfe(organ_code, page_number)
 
@@ -83,7 +93,7 @@ def get_nfe_data(organ_code: str, year_emission: str) -> list[dict]:
 
 if __name__ == "__main__":
     organ_code = "3600"
-    year_emission = "2025"
+    year_emission = 2025
 
     nfe_data = get_nfe_data(organ_code, year_emission)
 
