@@ -45,7 +45,8 @@ def filter_nfe_per_year(api_response: list[dict], year_emission: int) -> list[di
     return [
         nfe
         for nfe in api_response
-        if "dataEmissao" in nfe and datetime.strptime(nfe["dataEmissao"], "%d/%m/%Y").year == year_emission
+        if "dataEmissao" in nfe
+        and datetime.strptime(nfe["dataEmissao"], "%d/%m/%Y").year == year_emission
     ]
 
 
@@ -67,7 +68,7 @@ def get_nfe_data(
             break
 
         try:
-            api_response = request_nfe(organ_code, page_number)
+            api_response = request_nfe(organ_code=organ_code, page_number=page_number)
 
             if not api_response:
                 logger.info(
@@ -75,7 +76,9 @@ def get_nfe_data(
                 )
                 break
 
-            filtered_nfe = filter_nfe_per_year(api_response, year_emission)
+            filtered_nfe = filter_nfe_per_year(
+                api_response=api_response, year_emission=year_emission
+            )
             all_nfe.extend(filtered_nfe)
 
             logger.info(
@@ -95,7 +98,7 @@ if __name__ == "__main__":
     organ_code = "36000"
     year_emission = 2025
 
-    nfe_data = get_nfe_data(organ_code, year_emission)
+    nfe_data = get_nfe_data(organ_code=organ_code, year_emission=year_emission)
 
     if not nfe_data:
         logger.info(

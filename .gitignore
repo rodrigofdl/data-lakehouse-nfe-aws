@@ -1,2 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# VS Code
+.vscode/
+
+# Virtual environments
 *.env
+
+# pytest cache
+.pytest_cache/
+
+# Log files
 *.log
