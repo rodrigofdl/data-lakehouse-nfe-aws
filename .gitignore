@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+*.env
+
+# pytest cache
+.pytest_cache/
+
+# Log files
+*.log
