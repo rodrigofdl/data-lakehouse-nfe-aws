@@ -2,9 +2,6 @@
 __pycache__/
 *.py[cod]
 
-# VS Code
-.vscode/
-
 # Virtual environments
 *.env
 

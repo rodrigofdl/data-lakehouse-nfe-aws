@@ -26,6 +26,7 @@ def set_api_key(monkeypatch):
     monkeypatch.setenv("API_KEY", "test_api_key")
 
 
+@pytest.mark.unit
 def test_request_nfe_success(mocker):
     mock_get = mocker.patch("requests.get")
     mock_get.return_value.status_code = 200
