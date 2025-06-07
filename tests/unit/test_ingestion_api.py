@@ -1,5 +1,6 @@
 import pytest
 import requests
+from tenacity import RetryError
 import src.ingestion_api
 
 
@@ -46,6 +47,7 @@ def test_request_nfe_success(mocker):
     assert result == [{"data": "example"}]
 
 
+@pytest.mark.unit
 def test_request_nfe_failure(mocker):
     """
     Tests if the `request_nfe' function tries again and throws exception after request failures.
@@ -53,13 +55,16 @@ def test_request_nfe_failure(mocker):
     mock_get = mocker.patch("requests.get")
     mock_get.side_effect = requests.exceptions.RequestException("API error")
 
-    with pytest.raises(requests.exceptions.RequestException) as exc_info:
+    with pytest.raises(RetryError) as exc_info:
         src.ingestion_api.request_nfe(organ_code="36000", page_number=1)
 
+    assert isinstance(
+        exc_info.value.last_attempt.exception(), requests.exceptions.RequestException
+    )
     assert mock_get.call_count == 3
-    assert "API error" in str(exc_info.value)
 
 
+@pytest.mark.unit
 def test_filter_nfe_per_year_sucess(mock_nfe_data):
     """
     Tests if the `filter_nfe_per_year` function correctly filters data by year.
@@ -72,6 +77,7 @@ def test_filter_nfe_per_year_sucess(mock_nfe_data):
     assert filtered_data == mock_nfe_data["nfe_2025"]
 
 
+@pytest.mark.unit
 def test_filter_nfe_per_year_no_match(mock_nfe_data):
     """
     Tests if the `filter_nfe_per_year` function returns an empty list when no data matches the specified year.
@@ -83,6 +89,7 @@ def test_filter_nfe_per_year_no_match(mock_nfe_data):
     assert filtered_data == []
 
 
+@pytest.mark.unit
 def test_get_nfe_data_success(mocker, mock_nfe_data):
     """
     Tests the complete flow of API data with multiple pages,
@@ -100,6 +107,7 @@ def test_get_nfe_data_success(mocker, mock_nfe_data):
     assert mock_request_nfe.call_count == 3
 
 
+@pytest.mark.unit
 def test_get_nfe_data_empty_first_page(mocker):
     """
     Tests if the `get_nfe_data` function returns an empty list when the first page of the API response is empty.
@@ -112,6 +120,7 @@ def test_get_nfe_data_empty_first_page(mocker):
     assert mock_request_nfe.call_count == 1
 
 
+@pytest.mark.unit
 def test_get_nfe_data_reaches_max_pages(mocker, mock_nfe_data):
     """
     Tests if the `get_nfe_data` function stops seeking after reaching the pages limit (max_pages).
@@ -128,9 +137,10 @@ def test_get_nfe_data_reaches_max_pages(mocker, mock_nfe_data):
     assert mock_request_nfe.call_count == 2
 
 
+@pytest.mark.unit
 def test_get_nfe_data_api_exception(mocker, mock_nfe_data):
     """
-    Tests if the `get_nfe_data` function handles API exceptions correctly,
+    Tests if the `get_nfe_data` function handles API exceptions correctly.
     """
     simulated_api_response = [
         mock_nfe_data["nfe_2025"],
