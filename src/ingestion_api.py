@@ -1,10 +1,18 @@
+# Imports Standard Library
 import os
 import sys
-import requests
 import logging
 from datetime import datetime
+
+# Imports Third-Party Libraries
 from dotenv import load_dotenv
+import pandas as pd
+import pyarrow as pa
+import pyarrow.dataset as ds
+from pyarrow.fs import S3FileSystem
+import requests
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
+
 
 # Logging System Configuration: Displays at the terminal and saves in file
 logging.basicConfig(
@@ -133,10 +141,62 @@ def get_nfe_data(
     return all_nfe
 
 
+def prepare_dataframe(all_nfe: list[dict]) -> None:
+    """
+    Converts the list of invoices to a dataframe,
+    perform types and add columns 'ano' and 'mes'.
+
+    Parameters:
+        all_nfe (list[dict]): List of NFE raw.
+
+    Returns:
+        pd.DataFrame: DataFrame treated.
+    """
+    df = pd.DataFrame(all_nfe)
+
+    # Correct ValorNotafiscal: Remove the thousands separator, change comma to point and convert to float
+    df["valorNotaFiscal"] = (
+        df["valorNotaFiscal"]
+        .str.replace(".", "", regex=False)
+        .str.replace(",", ".", regex=False)
+        .astype(float)
+    )
+
+    # Convert date columns to datetime
+    df["dataEmissao"] = pd.to_datetime(
+        df["dataEmissao"], format="%d/%m/%Y", errors="coerce"
+    )
+    df["dataTipoEventoMaisRecente"] = pd.to_datetime(
+        df["dataTipoEventoMaisRecente"], format="%d/%m/%Y %H:%M:%S", errors="coerce"
+    )
+
+    # Converts the remaining types
+    df = df.astype({
+        "id": "int64",
+        "codigoOrgaoSuperiorDestinatario": "string",
+        "orgaoSuperiorDestinatario": "string",
+        "codigoOrgaoDestinatario": "string",
+        "orgaoDestinatario": "string",
+        "nomeFornecedor": "string",
+        "cnpjFornecedor": "string",
+        "municipioFornecedor": "string",
+        "chaveNotaFiscal": "string",
+        "tipoEventoMaisRecente": "string",
+        "numero": "int64",
+        "serie": "int64",
+    })
+
+    # Extraction of 'ano' and 'mês' columns of the dataEmissao
+    df["ano"] = df["dataEmissao"].dt.year
+    df["mes"] = df["dataEmissao"].dt.month
+
+    return df
+
+
 if __name__ == "__main__":
     # Input parameters for collection
     organ_code = "36000"
-    year_emission = 2025
+    year_emission = 2024
 
     # Run the collection
     nfe_data = get_nfe_data(organ_code=organ_code, year_emission=year_emission)
