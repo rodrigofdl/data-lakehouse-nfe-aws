@@ -4,7 +4,7 @@ import requests
 from tenacity import RetryError
 
 # Imports Local Libraries
-import src.ingestion_api
+import data_pipeline.source_api
 
 
 @pytest.fixture
@@ -45,7 +45,7 @@ def test_request_nfe_success(mocker):
     mock_get.return_value.status_code = 200
     mock_get.return_value.json.return_value = [{"data": "example"}]
 
-    result = src.ingestion_api.request_nfe(organ_code="36000", page_number=1)
+    result = data_pipeline.source_api.request_nfe(organ_code="36000", page_number=1)
 
     assert result == [{"data": "example"}]
 
@@ -100,10 +100,10 @@ def test_get_nfe_data_success(mocker, mock_nfe_data):
     """
     simulated_api_response = [mock_nfe_data["mixed_nfe"], mock_nfe_data["nfe_2024"], []]
     mock_request_nfe = mocker.patch(
-        "src.ingestion_api.request_nfe", side_effect=simulated_api_response
+        "data_pipeline.source_api.request_nfe", side_effect=simulated_api_response
     )
 
-    result = src.ingestion_api.get_nfe_data(organ_code="36000", year_emission=2025)
+    result = data_pipeline.source_api.get_nfe_data(organ_code="36000", year_emission=2025)
 
     assert len(result) == 2
     assert result == mock_nfe_data["nfe_2025"]
@@ -115,9 +115,9 @@ def test_get_nfe_data_empty_first_page(mocker):
     """
     Tests if the `get_nfe_data` function returns an empty list when the first page of the API response is empty.
     """
-    mock_request_nfe = mocker.patch("src.ingestion_api.request_nfe", return_value=[])
+    mock_request_nfe = mocker.patch("data_pipeline.source_api.request_nfe", return_value=[])
 
-    result = src.ingestion_api.get_nfe_data(organ_code="36000", year_emission=2025)
+    result = data_pipeline.source_api.get_nfe_data(organ_code="36000", year_emission=2025)
 
     assert result == []
     assert mock_request_nfe.call_count == 1
@@ -129,10 +129,10 @@ def test_get_nfe_data_reaches_max_pages(mocker, mock_nfe_data):
     Tests if the `get_nfe_data` function stops seeking after reaching the pages limit (max_pages).
     """
     mock_request_nfe = mocker.patch(
-        "src.ingestion_api.request_nfe", return_value=mock_nfe_data["nfe_2025"]
+        "data_pipeline.source_api.request_nfe", return_value=mock_nfe_data["nfe_2025"]
     )
 
-    result = src.ingestion_api.get_nfe_data(
+    result = data_pipeline.source_api.get_nfe_data(
         organ_code="36000", year_emission=2025, max_pages=2
     )
 
@@ -150,10 +150,10 @@ def test_get_nfe_data_api_exception(mocker, mock_nfe_data):
         Exception("API error"),
     ]
     mock_request = mocker.patch(
-        "src.ingestion_api.request_nfe", side_effect=simulated_api_response
+        "data_pipeline.source_api.request_nfe", side_effect=simulated_api_response
     )
 
-    result = src.ingestion_api.get_nfe_data(organ_code="36000", year_emission=2025)
+    result = data_pipeline.source_api.get_nfe_data(organ_code="36000", year_emission=2025)
 
     assert len(result) == 2
     assert result == mock_nfe_data["nfe_2025"]

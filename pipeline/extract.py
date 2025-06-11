@@ -6,23 +6,10 @@ from datetime import datetime
 
 # Imports Third-Party Libraries
 from dotenv import load_dotenv
-import pandas as pd
-import pyarrow as pa
-import pyarrow.dataset as ds
-from pyarrow.fs import S3FileSystem
 import requests
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
 
-
 # Logging System Configuration: Displays at the terminal and saves in file
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler("logs/ingestion.log", mode="w"),
-    ],
-)
 logger = logging.getLogger(__name__)
 
 # URL of the API of Portal da Transparência
@@ -31,13 +18,6 @@ API_URL = "https://api.portaldatransparencia.gov.br/api-de-dados/notas-fiscais"
 # Load environment variables from .env file
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
-
-# Check if Api_Key has been loaded correctly
-if not API_KEY or API_KEY.strip() == "":
-    logger.error(
-        "API_KEY não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
-    )
-    sys.exit(1)
 
 
 @retry(
@@ -97,6 +77,13 @@ def get_nfe_data(
     Returns:
         list[dict]: Consolidated List of Invoices of the Desired Year.
     """
+    # Check if Api_Key has been loaded correctly
+    if not API_KEY or API_KEY.strip() == "":
+        logger.error(
+            "API_KEY não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
+        )
+        sys.exit(1)
+
     all_nfe: list[dict] = []
     page_number = 1
     logger.info(
@@ -106,8 +93,8 @@ def get_nfe_data(
     while True:
         if page_number > max_pages:
             logger.warning(
-                "Limite de páginas atingido. Pode haver dados faltando."
-                f"Verifique se é necessário aumentar esse limite ou revisar o filtro."
+                "Limite de páginas atingido. Pode haver dados faltando.\n"
+                "Verifique se é necessário aumentar esse limite ou revisar o filtro."
             )
             break
 
@@ -129,7 +116,7 @@ def get_nfe_data(
             all_nfe.extend(filtered_nfe)
 
             logger.info(
-                f"Página {page_number} - {len(filtered_nfe)} registros de {year_emission} encontrados"
+                f"Página {page_number} - {len(filtered_nfe)} registros de {year_emission} encontrados."
             )
 
             page_number += 1
@@ -139,75 +126,3 @@ def get_nfe_data(
             break
 
     return all_nfe
-
-
-def prepare_dataframe(all_nfe: list[dict]) -> None:
-    """
-    Converts the list of invoices to a dataframe,
-    perform types and add columns 'ano' and 'mes'.
-
-    Parameters:
-        all_nfe (list[dict]): List of NFE raw.
-
-    Returns:
-        pd.DataFrame: DataFrame treated.
-    """
-    df = pd.DataFrame(all_nfe)
-
-    # Correct ValorNotafiscal: Remove the thousands separator, change comma to point and convert to float
-    df["valorNotaFiscal"] = (
-        df["valorNotaFiscal"]
-        .str.replace(".", "", regex=False)
-        .str.replace(",", ".", regex=False)
-        .astype(float)
-    )
-
-    # Convert date columns to datetime
-    df["dataEmissao"] = pd.to_datetime(
-        df["dataEmissao"], format="%d/%m/%Y", errors="coerce"
-    )
-    df["dataTipoEventoMaisRecente"] = pd.to_datetime(
-        df["dataTipoEventoMaisRecente"], format="%d/%m/%Y %H:%M:%S", errors="coerce"
-    )
-
-    # Converts the remaining types
-    df = df.astype({
-        "id": "int64",
-        "codigoOrgaoSuperiorDestinatario": "string",
-        "orgaoSuperiorDestinatario": "string",
-        "codigoOrgaoDestinatario": "string",
-        "orgaoDestinatario": "string",
-        "nomeFornecedor": "string",
-        "cnpjFornecedor": "string",
-        "municipioFornecedor": "string",
-        "chaveNotaFiscal": "string",
-        "tipoEventoMaisRecente": "string",
-        "numero": "int64",
-        "serie": "int64",
-    })
-
-    # Extraction of 'ano' and 'mês' columns of the dataEmissao
-    df["ano"] = df["dataEmissao"].dt.year
-    df["mes"] = df["dataEmissao"].dt.month
-
-    return df
-
-
-if __name__ == "__main__":
-    # Input parameters for collection
-    organ_code = "36000"
-    year_emission = 2024
-
-    # Run the collection
-    nfe_data = get_nfe_data(organ_code=organ_code, year_emission=year_emission)
-
-    # Check if the collection returned data
-    if not nfe_data:
-        logger.info(
-            "Nenhuma nota fiscal foi encontrada ou um erro ocorreu durante a busca."
-        )
-        sys.exit(0)
-
-    logger.info(
-        f"Processamento concluído. {len(nfe_data)} notas fiscais de {year_emission} foram obtidas."
-    )
