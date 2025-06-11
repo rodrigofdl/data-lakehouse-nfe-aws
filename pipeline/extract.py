@@ -82,7 +82,7 @@ def get_nfe_data(
         logger.error(
             "API_KEY não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
         )
-        sys.exit(1)
+        sys.exit(1) # Exit the program with an error code
 
     all_nfe: list[dict] = []
     page_number = 1

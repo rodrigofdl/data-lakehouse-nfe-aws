@@ -33,7 +33,7 @@ def main():
         logger.warning(
             "Nenhuma nota fiscal foi encontrada ou ocorreu um erro durante a busca."
         )
-        sys.exit(0)
+        sys.exit(0) # Exit the script if no data is found
 
     logger.info(f"{len(nfe_data)} notas fiscais de {year_emission} coletadas.")
 
