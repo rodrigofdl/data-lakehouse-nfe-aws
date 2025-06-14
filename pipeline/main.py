@@ -5,6 +5,7 @@ import logging
 # Imports Local Modules
 import extract
 import transform
+import load
 
 # Logging System Configuration: Displays at the terminal and saves in file
 logging.basicConfig(
@@ -12,7 +13,7 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler("pipeline/logs/pipeline.log", mode="w", encoding='utf-8'),
+        logging.FileHandler("pipeline/logs/pipeline.log", mode="w", encoding="utf-8"),
     ],
 )
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ def main():
     # Input parameters for collection
     organ_code = "36000"
     year_emission = 2024
+    s3_base_path = ""
 
     logger.info("Iniciando o pipeline...")
 
@@ -33,20 +35,21 @@ def main():
         logger.warning(
             "Nenhuma nota fiscal foi encontrada ou ocorreu um erro durante a busca."
         )
-        sys.exit(0) # Exit the script if no data is found
+        sys.exit(0)  # Exit the script if no data is found
 
     logger.info(f"{len(nfe_data)} notas fiscais de {year_emission} coletadas.")
 
     # Prepare the DataFrame
-    df = transform.prepare_dataframe(nfe_data)
+    df = transform.prepare_dataframe(all_nfe=nfe_data)
     logger.info(
         f"DataFrame com {len(df)} linhas e {len(df.columns)} colunas preparado."
     )
 
-    # Aqui você pode chamar a função de armazenamento se desejar, ex:
-    # save_parquet_partitioned(df, path="data/nfe", partition_cols=["ano", "mes"])
+    # Save the data to S3 in Parquet format with partitioning
+    load.save_parquet_partitioned(df=df, s3_base_path=s3_base_path)
+    logger.info(f"Dados salvos com particionamento em: {s3_base_path}")
 
-    # logger.info("Pipeline concluído com sucesso.")
+    logger.info("Pipeline concluído com sucesso.")
 
 
 if __name__ == "__main__":
