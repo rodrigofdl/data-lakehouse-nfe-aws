@@ -1,35 +1,19 @@
+# Imports Standard Library
 import os
 import sys
-import requests
 import logging
 from datetime import datetime
+
+# Imports Third-Party Libraries
 from dotenv import load_dotenv
+import requests
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
 
 # Logging System Configuration: Displays at the terminal and saves in file
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler("logs/ingestion.log", mode="w"),
-    ],
-)
 logger = logging.getLogger(__name__)
-
-# URL of the API of Portal da Transparência
-API_URL = "https://api.portaldatransparencia.gov.br/api-de-dados/notas-fiscais"
 
 # Load environment variables from .env file
 load_dotenv()
-API_KEY = os.getenv("API_KEY")
-
-# Check if Api_Key has been loaded correctly
-if not API_KEY or API_KEY.strip() == "":
-    logger.error(
-        "API_KEY não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
-    )
-    sys.exit(1)
 
 
 @retry(
@@ -37,7 +21,7 @@ if not API_KEY or API_KEY.strip() == "":
     wait=wait_fixed(2),
     retry=retry_if_exception_type(requests.exceptions.RequestException),
 )
-def request_nfe(organ_code: str, page_number: int) -> list[dict]:
+def request_nfe(organ_code: str, page_number: int, api_url: str = None, api_key: str = None) -> list[dict]:
     """
     Request a page of invoices from the API of Portal da Transparência.
 
@@ -48,10 +32,32 @@ def request_nfe(organ_code: str, page_number: int) -> list[dict]:
     Returns:
         list[dict]: Page Invoice Records List.
     """
-    headers = {"accept": "*/*", "chave-api-dados": API_KEY}
+    # Check if API_URL is provided or loaded from environment variables
+    if api_url is None:
+        api_url = os.getenv("API_URL")
+
+    # Check if API_URL has been loaded correctly
+    if not api_url or api_url.strip() == "":
+        logger.error(
+            "API_URL não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
+        )
+        sys.exit(1)  # Exit the program with an error code
+
+    # Check if API_KEY is provided or loaded from environment variables
+    if api_key is None:
+        api_key = os.getenv("API_KEY")
+
+    # Check if API_KEY has been loaded correctly
+    if not api_key or api_key.strip() == "":
+        logger.error(
+            "API_KEY não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
+        )
+        sys.exit(1)  # Exit the program with an error code
+
+    headers = {"accept": "*/*", "chave-api-dados": api_key}
     parameters = {"codigoOrgao": organ_code, "pagina": page_number}
 
-    response = requests.get(API_URL, params=parameters, headers=headers)
+    response = requests.get(api_url, params=parameters, headers=headers)
     response.raise_for_status()  # Launches exception if the answer is error (4xx ou 5xx)
     return response.json()
 
@@ -98,8 +104,8 @@ def get_nfe_data(
     while True:
         if page_number > max_pages:
             logger.warning(
-                "Limite de páginas atingido. Pode haver dados faltando."
-                f"Verifique se é necessário aumentar esse limite ou revisar o filtro."
+                "Limite de páginas atingido. Pode haver dados faltando.\n"
+                "Verifique se é necessário aumentar esse limite ou revisar o filtro."
             )
             break
 
@@ -121,7 +127,7 @@ def get_nfe_data(
             all_nfe.extend(filtered_nfe)
 
             logger.info(
-                f"Página {page_number} - {len(filtered_nfe)} registros de {year_emission} encontrados"
+                f"Página {page_number} - {len(filtered_nfe)} registros de {year_emission} encontrados."
             )
 
             page_number += 1
@@ -131,23 +137,3 @@ def get_nfe_data(
             break
 
     return all_nfe
-
-
-if __name__ == "__main__":
-    # Input parameters for collection
-    organ_code = "36000"
-    year_emission = 2025
-
-    # Run the collection
-    nfe_data = get_nfe_data(organ_code=organ_code, year_emission=year_emission)
-
-    # Check if the collection returned data
-    if not nfe_data:
-        logger.info(
-            "Nenhuma nota fiscal foi encontrada ou um erro ocorreu durante a busca."
-        )
-        sys.exit(0)
-
-    logger.info(
-        f"Processamento concluído. {len(nfe_data)} notas fiscais de {year_emission} foram obtidas."
-    )
