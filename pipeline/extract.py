@@ -12,9 +12,6 @@ from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_t
 # Logging System Configuration: Displays at the terminal and saves in file
 logger = logging.getLogger(__name__)
 
-# URL of the API of Portal da Transparência
-API_URL = "https://api.portaldatransparencia.gov.br/api-de-dados/notas-fiscais"
-
 # Load environment variables from .env file
 load_dotenv()
 
@@ -24,7 +21,7 @@ load_dotenv()
     wait=wait_fixed(2),
     retry=retry_if_exception_type(requests.exceptions.RequestException),
 )
-def request_nfe(organ_code: str, page_number: int, api_key: str = None) -> list[dict]:
+def request_nfe(organ_code: str, page_number: int, api_url: str = None, api_key: str = None) -> list[dict]:
     """
     Request a page of invoices from the API of Portal da Transparência.
 
@@ -35,6 +32,17 @@ def request_nfe(organ_code: str, page_number: int, api_key: str = None) -> list[
     Returns:
         list[dict]: Page Invoice Records List.
     """
+    # Check if API_URL is provided or loaded from environment variables
+    if api_url is None:
+        api_url = os.getenv("API_URL")
+
+    # Check if API_URL has been loaded correctly
+    if not api_url or api_url.strip() == "":
+        logger.error(
+            "API_URL não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
+        )
+        sys.exit(1)  # Exit the program with an error code
+
     # Check if API_KEY is provided or loaded from environment variables
     if api_key is None:
         api_key = os.getenv("API_KEY")
@@ -49,7 +57,7 @@ def request_nfe(organ_code: str, page_number: int, api_key: str = None) -> list[
     headers = {"accept": "*/*", "chave-api-dados": api_key}
     parameters = {"codigoOrgao": organ_code, "pagina": page_number}
 
-    response = requests.get(API_URL, params=parameters, headers=headers)
+    response = requests.get(api_url, params=parameters, headers=headers)
     response.raise_for_status()  # Launches exception if the answer is error (4xx ou 5xx)
     return response.json()
 
