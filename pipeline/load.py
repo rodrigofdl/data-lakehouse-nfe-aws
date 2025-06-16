@@ -19,11 +19,11 @@ logger = logging.getLogger(__name__)
 
 def save_parquet_partitioned(df: pd.DataFrame, s3_base_path: str) -> None:
     """
-    Salva o DataFrame em formato Parquet particionado por 'ano' e 'mes' no S3.
+    Saves Dataframe in Parquet format 'ano' and 'mes' in S3.
 
     Parameters:
-        df (pd.DataFrame): DataFrame tratado.
-        s3_base_path (str): Caminho base no S3 (ex: 's3://meu-bucket-dados/raw/notas_fiscais_partitioned')
+        df (pd.DataFrame): Dataframe Treaty.
+        s3_base_path (str): Base path on S3 (ex: 's3://meu-bucket-dados/raw/notas_fiscais_partitioned')
     """
     # Checks if the base path has been defined
     if not s3_base_path or s3_base_path.strip() == "":

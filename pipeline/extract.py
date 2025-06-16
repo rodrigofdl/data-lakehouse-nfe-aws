@@ -17,7 +17,6 @@ API_URL = "https://api.portaldatransparencia.gov.br/api-de-dados/notas-fiscais"
 
 # Load environment variables from .env file
 load_dotenv()
-API_KEY = os.getenv("API_KEY")
 
 
 @retry(
@@ -25,7 +24,7 @@ API_KEY = os.getenv("API_KEY")
     wait=wait_fixed(2),
     retry=retry_if_exception_type(requests.exceptions.RequestException),
 )
-def request_nfe(organ_code: str, page_number: int) -> list[dict]:
+def request_nfe(organ_code: str, page_number: int, api_key: str = None) -> list[dict]:
     """
     Request a page of invoices from the API of Portal da Transparência.
 
@@ -36,7 +35,18 @@ def request_nfe(organ_code: str, page_number: int) -> list[dict]:
     Returns:
         list[dict]: Page Invoice Records List.
     """
-    headers = {"accept": "*/*", "chave-api-dados": API_KEY}
+    # Check if API_KEY is provided or loaded from environment variables
+    if api_key is None:
+        api_key = os.getenv("API_KEY")
+
+    # Check if API_KEY has been loaded correctly
+    if not api_key or api_key.strip() == "":
+        logger.error(
+            "API_KEY não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
+        )
+        sys.exit(1)  # Exit the program with an error code
+
+    headers = {"accept": "*/*", "chave-api-dados": api_key}
     parameters = {"codigoOrgao": organ_code, "pagina": page_number}
 
     response = requests.get(API_URL, params=parameters, headers=headers)
@@ -77,13 +87,6 @@ def get_nfe_data(
     Returns:
         list[dict]: Consolidated List of Invoices of the Desired Year.
     """
-    # Check if Api_Key has been loaded correctly
-    if not API_KEY or API_KEY.strip() == "":
-        logger.error(
-            "API_KEY não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
-        )
-        sys.exit(1) # Exit the program with an error code
-
     all_nfe: list[dict] = []
     page_number = 1
     logger.info(
