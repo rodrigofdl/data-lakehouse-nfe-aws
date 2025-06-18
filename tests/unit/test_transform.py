@@ -30,6 +30,7 @@ def mock_nfe_data():
     }
 
 
+@pytest.mark.unit
 def test_prepare_dataframe_valid_data():
     """
     Test the prepare_dataframe function with valid mock data.
@@ -53,6 +54,7 @@ def test_prepare_dataframe_valid_data():
     assert df["codigoOrgaoSuperiorDestinatario"].dtype.name == "string"
 
 
+@pytest.mark.unit
 def test_prepare_dataframe_invalid_valorNotaFiscal():
     """
     Test the prepare_dataframe function with an invalid valorNotaFiscal format.
@@ -66,6 +68,7 @@ def test_prepare_dataframe_invalid_valorNotaFiscal():
         pipeline.transform.prepare_dataframe([broken_data])
 
 
+@pytest.mark.unit
 def test_prepare_dataframe_invalid_dates():
     """
     Test the prepare_dataframe function with invalid date formats.

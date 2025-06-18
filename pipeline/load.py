@@ -33,7 +33,7 @@ def save_parquet_partitioned(df: pd.DataFrame, s3_base_path: str) -> None:
         sys.exit(1)
 
     # Checks if the DataFrame has the required columns
-    fs = S3FileSystem()
+    s3fs = S3FileSystem()
 
     # Exclude existing partitions that are in dataframe (avoids duplicity)
     years_months = df["ano", "mes"].dropna().drop_duplicates()
@@ -41,8 +41,8 @@ def save_parquet_partitioned(df: pd.DataFrame, s3_base_path: str) -> None:
     # Check if the base path exists, if yes, delete its contents
     for _, row in years_months.iterrows():
         partition_path = f"{s3_base_path}/ano={int(row['ano'])}/mes={int(row['mes'])}"
-        if fs.isdir(partition_path):
-            fs.delete_dir_contents(partition_path)
+        if s3fs.isdir(partition_path):
+            s3fs.delete_dir_contents(partition_path)
             logger.info(f"Partição existente limpa: {partition_path}")
 
     # Convert DataFrame to PyArrow Table and write to S3
@@ -52,5 +52,5 @@ def save_parquet_partitioned(df: pd.DataFrame, s3_base_path: str) -> None:
         base_dir=s3_base_path,
         format="parquet",
         partitioning=["ano", "mes"],
-        filesystem=fs,
+        filesystem=s3fs,
     )
