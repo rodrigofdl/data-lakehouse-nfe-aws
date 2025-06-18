@@ -7,102 +7,88 @@ import pyarrow as pa
 import pipeline.load
 
 
-@pytest.mark.unit
-def test_save_partitioned_with_existing_partition(mocker):
+@pytest.fixture
+def mock_s3_fs(mocker):
     """
-    Checks if the function deletes the old partition and writes the new.
+    Fixture to simulate S3Filesystem with customizable behavior in each test.
     """
-    # Arrange: Mocking the necessary components
-    # Mock the write_dataset function
-    mock_write_dataset = mocker.patch("pipeline.load.ds.write_dataset")
-    # Mock the S3FileSystem class
     mock_s3_fs_class = mocker.patch("pipeline.load.S3FileSystem")
-    # Creates a stuntman for S3FileSystem
     mock_fs_instance = mocker.MagicMock()
-    # Simulates that the partition already exists
-    mock_fs_instance.isdir.return_value = True
-    # Makes it S3FileSystem() Return our stunt
     mock_s3_fs_class.return_value = mock_fs_instance
-    # Mock the logger to check if the info method is called
+    return mock_fs_instance
+
+
+@pytest.mark.unit
+def test_save_partitioned_with_existing_partition(mocker, mock_s3_fs):
+    """
+    Tests if the function removes an existing partition before saving new data.
+    """
+    # Arrange
+    mock_write_dataset = mocker.patch("pipeline.load.ds.write_dataset")
     mock_logger_info = mocker.patch("pipeline.load.logger.info")
 
-    # Arrange: Input data
+    mock_s3_fs.isdir.return_value = True  # Simulates that the partition exists
+
     df = pd.DataFrame({"produto": ["A"], "valor": [100], "ano": [2024], "mes": [6]})
     s3_base_path = "s3://meu-bucket/dados"
     partition_path = f"{s3_base_path}/ano=2024/mes=6"
 
-    # Act: Call the function save_parquet_partitioned
+    # Act
     pipeline.load.save_parquet_partitioned(df, s3_base_path)
 
-    # Assert:
-    # Ensure S3FileSystem was instantiated
-    mock_s3_fs_class.assert_called_once()
-    # Check if the isdir method was called with the correct partition path
-    mock_fs_instance.isdir.assert_called_once_with(partition_path)
-    # Check if the delete_dir_contents method was called with the correct partition path
-    mock_fs_instance.delete_dir_contents.assert_called_once_with(partition_path)
-    # Check if the logger info method was called with the correct message
+    # Assert
+    mock_s3_fs.isdir.assert_called_once_with(partition_path)
+    mock_s3_fs.delete_dir_contents.assert_called_once_with(partition_path)
     mock_logger_info.assert_called_once_with(
         f"Partição existente limpa: {partition_path}"
     )
-    # Ensure write_dataset was called
+
     mock_write_dataset.assert_called_once()
 
-    # Assert: Check if the write_dataset was called with the correct parameters
-    kwargs = mock_write_dataset.call_args
-    assert kwargs["base_dir"] == s3_base_path
-    assert kwargs["partitioning"] == ["ano", "mes"]
-    assert isinstance(kwargs["data"], pa.Table)
+    assert mock_write_dataset.call_count == 1
+    call_args = mock_write_dataset.call_args.kwargs
+    assert call_args["base_dir"] == s3_base_path
+    assert call_args["partitioning"] == ["ano", "mes"]
+    assert isinstance(call_args["data"], pa.Table)
 
 
 @pytest.mark.unit
-def test_save_partitioned_with_new_partition(mocker):
+def test_save_partitioned_with_new_partition(mocker, mock_s3_fs):
     """
-    Checks if the function does not try to delete a partition that does not exist.
+    Tests whether the function does not try to delete a partition that does not exist.
     """
-    # Arrange: Mocking the necessary components
+    # Arrange
     mock_write_dataset = mocker.patch("pipeline.load.ds.write_dataset")
-    mock_s3_fs_class = mocker.patch("pipeline.load.S3FileSystem")
-    mock_fs_instance = mocker.MagicMock()
-    mock_fs_instance.isdir.return_value = (
-        False  # Simulates that the partition does not exist
-    )
-    mock_s3_fs_class.return_value = mock_fs_instance
+    mock_s3_fs.isdir.return_value = False  # Simulates that the partition does not exist
 
-    # Arrange: Input data
     df = pd.DataFrame({"ano": [2024], "mes": [7]})
     s3_base_path = "s3://meu-bucket/dados"
 
-    # Act: Call the function save_parquet_partitioned
+    # Act
     pipeline.load.save_parquet_partitioned(df, s3_base_path)
 
-    # Assert: Verify the deleting function was not called
-    mock_fs_instance.delete_dir_contents.assert_not_called()
-
-    # Assert: Checks if the writing function has been called
+    # Assert
+    mock_s3_fs.delete_dir_contents.assert_not_called()
     mock_write_dataset.assert_called_once()
 
 
 @pytest.mark.unit
 def test_save_parquet_with_path_invalid(mocker):
     """
-    Check if the function ends and logs on an error with an empty Path S3.
+    Tests if the function is a log of error and closes the execution if Path S3 is invalid.
     """
-    # Arrange: Mocking the logger to check if the error method is called
+    # Arrange
     mock_logger_error = mocker.patch("pipeline.load.logger.error")
 
-    # Arrange: Input data
     df = pd.DataFrame({"ano": [2024], "mes": [1]})
+    invalid_path = "   "  # Invalid path with only spaces
 
-    # Act: Call the function save_parquet_partitioned with an invalid path
+    # Act & Assert
     with pytest.raises(SystemExit) as e:
-        pipeline.load.save_parquet_partitioned(df, "   ")
+        pipeline.load.save_parquet_partitioned(df, invalid_path)
 
-    # Assert: Check if the function raises SystemExit with code 1
     assert e.type == SystemExit
     assert e.value.code == 1
-
-    # Assert: Check if the correct error message was logged in
     mock_logger_error.assert_called_once_with(
         "s3_base_path não encontrado. Certifique-se de que o arquivo .env está configurado corretamente."
     )
