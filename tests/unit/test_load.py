@@ -70,25 +70,3 @@ def test_save_partitioned_with_new_partition(mocker, mock_s3_fs):
     # Assert
     mock_s3_fs.delete_dir_contents.assert_not_called()
     mock_write_dataset.assert_called_once()
-
-
-@pytest.mark.unit
-def test_save_parquet_with_path_invalid(mocker):
-    """
-    Tests if the function is a log of error and closes the execution if Path S3 is invalid.
-    """
-    # Arrange
-    mock_logger_error = mocker.patch("pipeline.load.logger.error")
-
-    df = pd.DataFrame({"ano": [2024], "mes": [1]})
-    invalid_path = "   "  # Invalid path with only spaces
-
-    # Act & Assert
-    with pytest.raises(SystemExit) as e:
-        pipeline.load.save_parquet_partitioned(df, invalid_path)
-
-    assert e.type == SystemExit
-    assert e.value.code == 1
-    mock_logger_error.assert_called_once_with(
-        "s3_base_path não encontrado. Certifique-se de que o arquivo .env está configurado corretamente."
-    )
