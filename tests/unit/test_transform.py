@@ -9,7 +9,10 @@ import pipeline.transform
 @pytest.fixture
 def mock_nfe_data():
     """
-    Pytest fixture to provide mock data for testing the DataFrame preparation.
+    Fixture that provides a fictitious record of Nota Fiscal Eletrônica (NFe) for the tests.
+
+    Returns:
+        dict: A dictionary representing a NFe record with examples.
     """
     return {
         "id": 1,
@@ -31,17 +34,22 @@ def mock_nfe_data():
 
 
 @pytest.mark.unit
-def test_prepare_dataframe_valid_data():
+def test_prepare_dataframe_valid_data(mock_nfe_data):
     """
-    Test the prepare_dataframe function with valid mock data.
+    Tests if the function prepares_dataframe converts and correctly a valid NFe record.
+
+    Tested scenarios:
+        - Type conversion (int, string, float, datetime)
+        - Column generation 'ano' and 'mes'
+        - Correct treatment of numerical fields and dates
     """
-    # Arrange: Use the mock data fixture
+    # Arrange
     input_data = [mock_nfe_data]
 
-    # Act: Call the function to prepare the dataframe
+    # Act
     df = pipeline.transform.prepare_dataframe(input_data)
 
-    # Assert: Check if the dataframe is created correctly
+    # Assert
     assert isinstance(df, pd.DataFrame)
     assert df.shape[0] == 1
     assert "ano" in df.columns
@@ -55,33 +63,38 @@ def test_prepare_dataframe_valid_data():
 
 
 @pytest.mark.unit
-def test_prepare_dataframe_invalid_valorNotaFiscal():
+def test_prepare_dataframe_invalid_valorNotaFiscal(mock_nfe_data):
     """
-    Test the prepare_dataframe function with an invalid valorNotaFiscal format.
+    Tests if the function prepare_dataframe spear ValueError when the field valorNotaFiscal has an invalid format.
     """
-    # Arrange: Use the mock data fixture and modify valorNotaFiscal
+    # Arrange
     broken_data = mock_nfe_data.copy()
     broken_data["valorNotaFiscal"] = "invalid_value"
 
-    # Act & Assert: Check if ValueError is raised when trying to prepare the dataframe
+    # Act & Assert
     with pytest.raises(ValueError):
         pipeline.transform.prepare_dataframe([broken_data])
 
 
 @pytest.mark.unit
-def test_prepare_dataframe_invalid_dates():
+def test_prepare_dataframe_invalid_dates(mock_nfe_data):
     """
-    Test the prepare_dataframe function with invalid date formats.
+    Tests if the function prepare_dataframe converts invalid dates into NaT (Not a Time).
+
+    Tested scenarios:
+        - dataEmissao invalid
+        - dataTipoEventoMaisRecente invalid
+        - Derivation of 'ano' and 'mes' must result in NaN
     """
-    # Arrange: Use the mock data fixture and modify date fields
+    # Arrange
     broken_data = mock_nfe_data.copy()
     broken_data["dataEmissao"] = "99/99/9999"
     broken_data["dataTipoEventoMaisRecente"] = "99/99/9999 99:99:99"
 
-    # Act: Call the function to prepare the dataframe
+    # Act
     df = pipeline.transform.prepare_dataframe([broken_data])
 
-    # Assert: Check if the dates are converted to NaT (Not a Time)
+    # Assert
     assert pd.isna(df.loc[0, "dataEmissao"])
     assert pd.isna(df.loc[0, "dataTipoEventoMaisRecente"])
     assert pd.isna(df.loc[0, "ano"])
