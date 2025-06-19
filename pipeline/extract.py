@@ -1,10 +1,7 @@
-# Imports Standard Library
 import os
-import sys
 import logging
 from datetime import datetime
-
-# Imports Third-Party Libraries
+from typing import Optional
 from dotenv import load_dotenv
 import requests
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
@@ -16,12 +13,21 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 
+class MissingAPIConfigError(Exception):
+    """Custom exception for missing API configuration."""
+
+
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_fixed(2),
     retry=retry_if_exception_type(requests.exceptions.RequestException),
 )
-def request_nfe(organ_code: str, page_number: int, api_url: str = None, api_key: str = None) -> list[dict]:
+def request_nfe(
+    organ_code: str,
+    page_number: int,
+    api_url: Optional[str] = None,
+    api_key: Optional[str] = None,
+) -> list[dict]:
     """
     Request a page of invoices from the API of Portal da Transparência.
 
@@ -31,34 +37,31 @@ def request_nfe(organ_code: str, page_number: int, api_url: str = None, api_key:
 
     Returns:
         list[dict]: Page Invoice Records List.
-    """
-    # Check if API_URL is provided or loaded from environment variables
-    if api_url is None:
-        api_url = os.getenv("API_URL")
 
-    # Check if API_URL has been loaded correctly
+    Raises:
+        MissingAPIConfigError: If API_URL or API_KEY is not found.
+    """
+    api_url = api_url or os.getenv("API_URL")
+    api_key = api_key or os.getenv("API_KEY")
+
     if not api_url or api_url.strip() == "":
         logger.error(
             "API_URL não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
         )
-        sys.exit(1)  # Exit the program with an error code
+        raise MissingAPIConfigError("API_URL ausente.")
 
-    # Check if API_KEY is provided or loaded from environment variables
-    if api_key is None:
-        api_key = os.getenv("API_KEY")
-
-    # Check if API_KEY has been loaded correctly
     if not api_key or api_key.strip() == "":
         logger.error(
             "API_KEY não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
         )
-        sys.exit(1)  # Exit the program with an error code
+        raise MissingAPIConfigError("API_KEY ausente.")
 
     headers = {"accept": "*/*", "chave-api-dados": api_key}
     parameters = {"codigoOrgao": organ_code, "pagina": page_number}
 
     response = requests.get(api_url, params=parameters, headers=headers)
-    response.raise_for_status()  # Launches exception if the answer is error (4xx ou 5xx)
+    response.raise_for_status()
+
     return response.json()
 
 
@@ -82,21 +85,22 @@ def filter_nfe_per_year(api_response: list[dict], year_emission: int) -> list[di
 
 
 def get_nfe_data(
-    organ_code: str, year_emission: int, max_pages: int = 1000
+    organ_code: str, year_emission: int, max_pages: int = 400
 ) -> list[dict]:
     """
-    Holds the collection of all invoices of an agency for a given year.
+    Collects all invoices of an agency for a given year.
 
     Parameters:
         organ_code (str): Public agency code;
         year_emission (int): Year of invoices to be collected;
-        max_pages (int): Maximum number of pages to be consulted (default: 1000).
+        max_pages (int): Maximum number of pages to be consulted (default: 400).
 
     Returns:
-        list[dict]: Consolidated List of Invoices of the Desired Year.
+        list[dict]: Consolidated List of Invoices of the desired Year.
     """
     all_nfe: list[dict] = []
     page_number = 1
+
     logger.info(
         f"Iniciando a coleta de NFE para o órgão {organ_code} no ano {year_emission}."
     )
@@ -110,17 +114,14 @@ def get_nfe_data(
             break
 
         try:
-            # Requirement of an API page
             api_response = request_nfe(organ_code=organ_code, page_number=page_number)
 
-            # If the answer is empty, the loop finishes
             if not api_response:
                 logger.info(
                     f"Nenhum dado retornado na página {page_number}. Finalizando coleta."
                 )
                 break
 
-            # Filters only the Invoices of the Desired Year
             filtered_nfe = filter_nfe_per_year(
                 api_response=api_response, year_emission=year_emission
             )
@@ -136,4 +137,27 @@ def get_nfe_data(
             logger.error(f"Erro ao requisitar a página {page_number}: {e}")
             break
 
+    logger.info(
+        f"{len(all_nfe)} NFe para o órgão {organ_code} no ano {year_emission} coletadas."
+    )
+
     return all_nfe
+
+
+if __name__ == "__main__":
+    # Example usage of the module
+    import json
+
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
+
+    try:
+        organ_code = "36000"
+        year_emission = 2024
+        data = get_nfe_data(organ_code=organ_code, year_emission=year_emission)
+        print(json.dumps(data, indent=2, ensure_ascii=False))
+    except MissingAPIConfigError as config_error:
+        print(f"Configuração de API ausente: {config_error}")
+    except Exception as general_error:
+        print(f"Erro inesperado durante a execução: {general_error}")

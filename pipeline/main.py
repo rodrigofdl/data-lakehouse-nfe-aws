@@ -1,13 +1,14 @@
-# Imports Standard Library
-import sys
+import os
 import logging
+from dotenv import load_dotenv
 
 # Imports Local Modules
-import extract
-import transform
-import load
+from pipeline import extract, transform, load
+from pipeline.extract import APIConfigurationError
+from pipeline.transform import DataTransformationError
+from pipeline.load import MissingS3PathError, LoadError
 
-# Logging System Configuration: Displays at the terminal and saves in file
+# Logging Configuration: Displays at the terminal and saves in file
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -18,39 +19,58 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Load environment variables from .env file
+load_dotenv()
 
-def main():
-    # Input parameters for collection
-    organ_code = "36000"
-    year_emission = 2024
-    s3_base_path = ""
 
-    logger.info("Iniciando o pipeline...")
+def run_pipeline():
+    try:
+        # Input parameters for collection
+        organ_code = "36000"
+        year_emission = 2024
 
-    # Run the collection
-    nfe_data = extract.get_nfe_data(organ_code=organ_code, year_emission=year_emission)
+        logger.info("Iniciando o pipeline...")
 
-    # Check if the collection returned data
-    if not nfe_data:
-        logger.warning(
-            "Nenhuma nota fiscal foi encontrada ou ocorreu um erro durante a busca."
+        # Extract
+        nfe_data = extract.get_nfe_data(
+            organ_code=organ_code, year_emission=year_emission
         )
-        sys.exit(0)  # Exit the script if no data is found
 
-    logger.info(f"{len(nfe_data)} notas fiscais de {year_emission} coletadas.")
+        if not nfe_data:
+            logger.warning(
+                "Nenhuma NFe foi encontrada para o filtro informado. Encerrando a busca."
+            )
+            return
 
-    # Prepare the DataFrame
-    df = transform.prepare_dataframe(all_nfe=nfe_data)
-    logger.info(
-        f"DataFrame com {len(df)} linhas e {len(df.columns)} colunas preparado."
-    )
+        # Transformação
+        df = transform.prepare_dataframe(all_nfe=nfe_data)
 
-    # Save the data to S3 in Parquet format with partitioning
-    load.save_parquet_partitioned(df=df, s3_base_path=s3_base_path)
-    logger.info(f"Dados salvos com particionamento em: {s3_base_path}")
+        if df.empty:
+            logger.warning(
+                "DataFrame resultante da transformação está vazio. Pipeline encerrado."
+            )
+            return
 
-    logger.info("Pipeline concluído com sucesso.")
+        # Save the data to S3 in Parquet format with partitioning
+        load.save_parquet_partitioned(df=df)
+
+        logger.info("Pipeline concluído com sucesso.")
+
+    except APIConfigurationError as e:
+        logger.error(f"Erro de configuração da API: {e}")
+
+    except DataTransformationError as e:
+        logger.error(f"Erro durante a transformação de dados: {e}")
+
+    except MissingS3PathError as e:
+        logger.error(f"Erro de configuração do caminho S3: {e}")
+
+    except LoadError as e:
+        logger.error(f"Erro durante o carregamento para o S3: {e}")
+
+    except Exception as e:
+        logger.exception(f"Erro inesperado no pipeline: {e}")
 
 
 if __name__ == "__main__":
-    main()
+    run_pipeline()
