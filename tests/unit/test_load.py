@@ -80,7 +80,7 @@ def test_save_parquet_partitioned_empty_s3_base_path():
 
     # Act & Assert
     with pytest.raises(
-        MissingS3PathError, match="Parâmetro s3_base_path ausente ou vazio"
+        MissingS3PathError, match="Parâmetro s3_base_path não encontrado"
     ):
         load.save_parquet_partitioned(df, invalid_path)
 
@@ -99,5 +99,5 @@ def test_save_parquet_partitioned_raises_load_error_on_write_failure(mocker):
     s3_base_path = "s3://fake-bucket/data"
 
     # Act & Assert
-    with pytest.raises(LoadError, match="Falha ao carregar os dados no S3"):
+    with pytest.raises(LoadError, match="Erro durante o carregamento para o S3"):
         load.save_parquet_partitioned(df, s3_base_path)

@@ -82,7 +82,7 @@ def test_request_nfe_missing_api_url(mocker):
     """
     mocker.patch.dict("os.environ", {"API_KEY": "test_key"}, clear=True)
 
-    with pytest.raises(MissingAPIConfigError, match="API_URL ausente"):
+    with pytest.raises(MissingAPIConfigError, match="API_URL não encontrada"):
         extract.request_nfe(organ_code="36000", page_number=1)
 
 
@@ -93,7 +93,7 @@ def test_request_nfe_missing_api_key(mocker):
     """
     mocker.patch.dict("os.environ", {"API_URL": "http://example.com/api"}, clear=True)
 
-    with pytest.raises(MissingAPIConfigError, match="API_KEY ausente"):
+    with pytest.raises(MissingAPIConfigError, match="API_KEY não encontrada"):
         extract.request_nfe(organ_code="36000", page_number=1)
 
 

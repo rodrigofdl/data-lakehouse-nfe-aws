@@ -68,7 +68,7 @@ def test_prepare_dataframe_invalid_valorNotaFiscal(mock_nfe_data):
 
     # Act & Assert
     with pytest.raises(
-        DataTransformationError, match="Falha na transformação dos dados"
+        DataTransformationError, match="Erro durante a transformação de dados"
     ):
         transform.prepare_dataframe([broken_data])
 

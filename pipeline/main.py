@@ -59,13 +59,13 @@ def run_pipeline():
         logger.error(f"Erro de configuração da API: {e}")
 
     except DataTransformationError as e:
-        logger.error(f"Erro durante a transformação de dados: {e}")
+        logger.error(e)
 
     except MissingS3PathError as e:
         logger.error(f"Erro de configuração do caminho S3: {e}")
 
     except LoadError as e:
-        logger.error(f"Erro durante o carregamento para o S3: {e}")
+        logger.error(e)
 
     except Exception as e:
         logger.exception(f"Erro inesperado no pipeline: {e}")

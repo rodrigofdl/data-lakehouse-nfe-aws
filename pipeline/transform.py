@@ -77,8 +77,7 @@ def prepare_dataframe(all_nfe: list[dict]) -> pd.DataFrame:
         return df
 
     except Exception as e:
-        logger.error(f"Erro na transformação dos dados: {e}")
-        raise DataTransformationError(f"Falha na transformação dos dados: {e}")
+        raise DataTransformationError(f"Erro durante a transformação de dados: {e}")
 
 
 if __name__ == "__main__":
@@ -114,4 +113,4 @@ if __name__ == "__main__":
         df = prepare_dataframe(all_nfe=example_nfe)
         print(df.head())
     except DataTransformationError as e:
-        print(f"Erro durante a transformação: {e}")
+        print(e)
