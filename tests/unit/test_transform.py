@@ -1,12 +1,9 @@
-# Imports Third-Party Libraries
 import pandas as pd
 import pytest
 
 # Imports Local Libraries
 from pipeline import transform
-from pipeline.transform import (
-    DataTransformationError,
-)
+from pipeline.transform import DataTransformationError
 
 
 @pytest.fixture

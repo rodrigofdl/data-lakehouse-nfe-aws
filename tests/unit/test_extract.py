@@ -1,13 +1,10 @@
-# Imports Third-Party Libraries
 import pytest
 import requests
 from tenacity import RetryError
 
 # Imports Local Libraries
 from pipeline import extract
-from pipeline.extract import (
-    MissingAPIConfigError,
-)
+from pipeline.extract import MissingAPIConfigError
 
 
 @pytest.fixture
