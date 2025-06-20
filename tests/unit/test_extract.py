@@ -80,9 +80,9 @@ def test_request_nfe_missing_api_url(mocker):
     """
     Tests whether the `request_nfe` function throws an error when the API URL is not set.
     """
-    mocker.patch.dict("os.environ", {"API_KEY": "dummy_key"}, clear=True)
+    mocker.patch.dict("os.environ", {"API_KEY": "test_key"}, clear=True)
 
-    with pytest.raises(MissingAPIConfigError, match="API_KEY ausente"):
+    with pytest.raises(MissingAPIConfigError, match="API_URL ausente"):
         extract.request_nfe(organ_code="36000", page_number=1)
 
 
@@ -138,7 +138,7 @@ def test_get_nfe_data_success(mocker, mock_nfe_api_response):
         [],  # Simulates the end of the pagess
     ]
     mock_request_nfe = mocker.patch(
-        "extract.request_nfe", side_effect=simulated_api_response
+        "pipeline.extract.request_nfe", side_effect=simulated_api_response
     )
 
     # Act
@@ -156,7 +156,7 @@ def test_get_nfe_data_empty_first_page(mocker):
     Tests if the `get_nfe_data` function returns an empty list when the first page of the API response is empty.
     """
     # Arrange
-    mock_request_nfe = mocker.patch("extract.request_nfe", return_value=[])
+    mock_request_nfe = mocker.patch("pipeline.extract.request_nfe", return_value=[])
 
     # Act
     result = extract.get_nfe_data(organ_code="36000", year_emission=2025)
@@ -173,7 +173,7 @@ def test_get_nfe_data_max_pages_limit(mocker, mock_nfe_api_response):
     """
     # Arrange
     mock_request_nfe = mocker.patch(
-        "extract.request_nfe", return_value=mock_nfe_api_response["nfe_2025"]
+        "pipeline.extract.request_nfe", return_value=mock_nfe_api_response["nfe_2025"]
     )
 
     # Act
@@ -196,7 +196,7 @@ def test_get_nfe_data_api_exception(mocker, mock_nfe_api_response):
         Exception("API error"),
     ]
     mock_request_nfe = mocker.patch(
-        "extract.request_nfe", side_effect=simulated_api_response
+        "pipeline.extract.request_nfe", side_effect=simulated_api_response
     )
 
     # Act

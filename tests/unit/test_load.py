@@ -12,7 +12,7 @@ def mock_s3_fs(mocker):
     """
     Fixture to simulate S3Filesystem with customizable behavior in each test.
     """
-    mock_s3_fs_class = mocker.patch("load.S3FileSystem")
+    mock_s3_fs_class = mocker.patch("pipeline.load.S3FileSystem")
     mock_fs_instance = mocker.MagicMock()
     mock_s3_fs_class.return_value = mock_fs_instance
     return mock_fs_instance
@@ -24,8 +24,8 @@ def test_save_partitioned_with_existing_partition(mocker, mock_s3_fs):
     Tests if the function removes an existing partition before saving new data.
     """
     # Arrange
-    mock_write_dataset = mocker.patch("load.ds.write_dataset")
-    mock_logger_info = mocker.patch("load.logger.info")
+    mock_write_dataset = mocker.patch("pipeline.load.ds.write_dataset")
+    mock_logger_info = mocker.patch("pipeline.load.logger.info")
 
     mock_s3_fs.isdir.return_value = True  # Simulates that the partition exists
 
@@ -55,7 +55,7 @@ def test_save_partitioned_with_new_partition(mocker, mock_s3_fs):
     Tests whether the function does not try to delete a partition that does not exist.
     """
     # Arrange
-    mock_write_dataset = mocker.patch("load.ds.write_dataset")
+    mock_write_dataset = mocker.patch("pipeline.load.ds.write_dataset")
     mock_s3_fs.isdir.return_value = False  # Simulates that the partition does not exist
 
     df = pd.DataFrame({"ano": [2024], "mes": [7]})
