@@ -1,10 +1,9 @@
-import os
 import logging
 from dotenv import load_dotenv
 
 # Imports Local Modules
 from pipeline import extract, transform, load
-from pipeline.extract import APIConfigurationError
+from pipeline.extract import MissingAPIConfigError
 from pipeline.transform import DataTransformationError
 from pipeline.load import MissingS3PathError, LoadError
 
@@ -56,7 +55,7 @@ def run_pipeline():
 
         logger.info("Pipeline concluído com sucesso.")
 
-    except APIConfigurationError as e:
+    except MissingAPIConfigError as e:
         logger.error(f"Erro de configuração da API: {e}")
 
     except DataTransformationError as e:

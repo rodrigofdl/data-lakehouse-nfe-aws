@@ -1,18 +1,15 @@
-# Imports Third-Party Libraries
 import pandas as pd
 import pytest
 
 # Imports Local Libraries
-import pipeline.transform
+from pipeline import transform
+from pipeline.transform import DataTransformationError
 
 
 @pytest.fixture
 def mock_nfe_data():
     """
-    Fixture that provides a fictitious record of Nota Fiscal Eletrônica (NFe) for the tests.
-
-    Returns:
-        dict: A dictionary representing a NFe record with examples.
+    Fixture that provides a sample NFe record for testing.
     """
     return {
         "id": 1,
@@ -36,18 +33,13 @@ def mock_nfe_data():
 @pytest.mark.unit
 def test_prepare_dataframe_valid_data(mock_nfe_data):
     """
-    Tests if the function prepares_dataframe converts and correctly a valid NFe record.
-
-    Tested scenarios:
-        - Type conversion (int, string, float, datetime)
-        - Column generation 'ano' and 'mes'
-        - Correct treatment of numerical fields and dates
+    Test if prepare_dataframe correctly processes a valid NFe record.
     """
     # Arrange
     input_data = [mock_nfe_data]
 
     # Act
-    df = pipeline.transform.prepare_dataframe(input_data)
+    df = transform.prepare_dataframe(input_data)
 
     # Assert
     assert isinstance(df, pd.DataFrame)
@@ -57,34 +49,34 @@ def test_prepare_dataframe_valid_data(mock_nfe_data):
     assert df.loc[0, "ano"] == 2024
     assert df.loc[0, "mes"] == 6
     assert df.loc[0, "valorNotaFiscal"] == 1234.56
+
+    # Type checks
     assert pd.api.types.is_datetime64_any_dtype(df["dataEmissao"])
     assert df["id"].dtype == "int64"
     assert df["codigoOrgaoSuperiorDestinatario"].dtype.name == "string"
+    assert pd.api.types.is_float_dtype(df["valorNotaFiscal"])
 
 
 @pytest.mark.unit
 def test_prepare_dataframe_invalid_valorNotaFiscal(mock_nfe_data):
     """
-    Tests if the function prepare_dataframe spear ValueError when the field valorNotaFiscal has an invalid format.
+    Test if prepare_dataframe raises ValueError when valorNotaFiscal has invalid format.
     """
     # Arrange
     broken_data = mock_nfe_data.copy()
     broken_data["valorNotaFiscal"] = "invalid_value"
 
     # Act & Assert
-    with pytest.raises(ValueError):
-        pipeline.transform.prepare_dataframe([broken_data])
+    with pytest.raises(
+        DataTransformationError, match="Falha na transformação dos dados"
+    ):
+        transform.prepare_dataframe([broken_data])
 
 
 @pytest.mark.unit
 def test_prepare_dataframe_invalid_dates(mock_nfe_data):
     """
-    Tests if the function prepare_dataframe converts invalid dates into NaT (Not a Time).
-
-    Tested scenarios:
-        - dataEmissao invalid
-        - dataTipoEventoMaisRecente invalid
-        - Derivation of 'ano' and 'mes' must result in NaN
+    Test if prepare_dataframe converts invalid date strings into NaT and NaN for derived columns.
     """
     # Arrange
     broken_data = mock_nfe_data.copy()
@@ -92,7 +84,7 @@ def test_prepare_dataframe_invalid_dates(mock_nfe_data):
     broken_data["dataTipoEventoMaisRecente"] = "99/99/9999 99:99:99"
 
     # Act
-    df = pipeline.transform.prepare_dataframe([broken_data])
+    df = transform.prepare_dataframe([broken_data])
 
     # Assert
     assert pd.isna(df.loc[0, "dataEmissao"])

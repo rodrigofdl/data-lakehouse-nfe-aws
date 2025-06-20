@@ -48,13 +48,13 @@ def request_nfe(
         logger.error(
             "API_URL não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
         )
-        raise MissingAPIConfigError("API_URL ausente.")
+        raise MissingAPIConfigError("API_URL ausente")
 
     if not api_key or api_key.strip() == "":
         logger.error(
             "API_KEY não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
         )
-        raise MissingAPIConfigError("API_KEY ausente.")
+        raise MissingAPIConfigError("API_KEY ausente")
 
     headers = {"accept": "*/*", "chave-api-dados": api_key}
     parameters = {"codigoOrgao": organ_code, "pagina": page_number}

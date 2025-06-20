@@ -1,19 +1,16 @@
-# Imports Third-Party Libraries
 import pytest
 import requests
 from tenacity import RetryError
 
 # Imports Local Libraries
-import pipeline.extract
+from pipeline import extract
+from pipeline.extract import MissingAPIConfigError
 
 
 @pytest.fixture
 def mock_nfe_api_response():
     """
     Fixture that provides different examples of response from API of NFe for the tests.
-
-    Returns:
-        dict: Dictionary containing NFe lists separated per year or mixture of years.
     """
     return {
         "nfe_2025": [
@@ -42,8 +39,11 @@ def test_request_nfe_success(mocker):
     mock_get.return_value.json.return_value = [{"data": "example"}]
 
     # Act
-    result = pipeline.extract.request_nfe(
-        organ_code="36000", page_number=1, api_key="test_key"
+    result = extract.request_nfe(
+        organ_code="36000",
+        page_number=1,
+        api_key="test_key",
+        api_url="http://example.com/api",
     )
 
     # Assert
@@ -51,7 +51,7 @@ def test_request_nfe_success(mocker):
 
 
 @pytest.mark.unit
-def test_request_nfe_failure(mocker):
+def test_request_nfe_retry_on_failure(mocker):
     """
     Tests if the `request_nfe' function tries again and throws exception after request failures.
     """
@@ -61,15 +61,40 @@ def test_request_nfe_failure(mocker):
 
     # Act & Assert
     with pytest.raises(RetryError) as exc_info:
-        pipeline.extract.request_nfe(
-            organ_code="36000", page_number=1, api_key="test_key"
+        extract.request_nfe(
+            organ_code="36000",
+            page_number=1,
+            api_key="test_key",
+            api_url="http://example.com/api",
         )
 
     # Assert
+    assert mock_get.call_count == 3
     assert isinstance(
         exc_info.value.last_attempt.exception(), requests.exceptions.RequestException
     )
-    assert mock_get.call_count == 3
+
+
+@pytest.mark.unit
+def test_request_nfe_missing_api_url(mocker):
+    """
+    Tests whether the `request_nfe` function throws an error when the API URL is not set.
+    """
+    mocker.patch.dict("os.environ", {"API_KEY": "test_key"}, clear=True)
+
+    with pytest.raises(MissingAPIConfigError, match="API_URL ausente"):
+        extract.request_nfe(organ_code="36000", page_number=1)
+
+
+@pytest.mark.unit
+def test_request_nfe_missing_api_key(mocker):
+    """
+    Tests whether the `request_nfe` function throws an error when the API key is not set.
+    """
+    mocker.patch.dict("os.environ", {"API_URL": "http://example.com/api"}, clear=True)
+
+    with pytest.raises(MissingAPIConfigError, match="API_KEY ausente"):
+        extract.request_nfe(organ_code="36000", page_number=1)
 
 
 @pytest.mark.unit
@@ -78,7 +103,7 @@ def test_filter_nfe_per_year_sucess(mock_nfe_api_response):
     Tests if the `filter_nfe_per_year` function correctly filters data by year.
     """
     # Arrange & Act
-    filtered_data = pipeline.extract.filter_nfe_per_year(
+    filtered_data = extract.filter_nfe_per_year(
         api_response=mock_nfe_api_response["mixed_nfe"], year_emission=2025
     )
 
@@ -93,7 +118,7 @@ def test_filter_nfe_per_year_no_match(mock_nfe_api_response):
     Tests if the `filter_nfe_per_year` function returns an empty list when no data matches the specified year.
     """
     # Arrange & Act
-    filtered_data = pipeline.extract.filter_nfe_per_year(
+    filtered_data = extract.filter_nfe_per_year(
         api_response=mock_nfe_api_response["mixed_nfe"], year_emission=2100
     )
 
@@ -105,10 +130,6 @@ def test_filter_nfe_per_year_no_match(mock_nfe_api_response):
 def test_get_nfe_data_success(mocker, mock_nfe_api_response):
     """
     Tests the complete flow of the function `get_nfe_data`, simulating multiple API pages.
-
-    Scenario:
-        - The API returns three answers (2 with data, 1 empty indicating the end of the pagination)
-        - The end result should contain only the records of the year specified.
     """
     # Arrange
     simulated_api_response = [
@@ -121,7 +142,7 @@ def test_get_nfe_data_success(mocker, mock_nfe_api_response):
     )
 
     # Act
-    result = pipeline.extract.get_nfe_data(organ_code="36000", year_emission=2025)
+    result = extract.get_nfe_data(organ_code="36000", year_emission=2025)
 
     # Assert
     assert len(result) == 2
@@ -138,7 +159,7 @@ def test_get_nfe_data_empty_first_page(mocker):
     mock_request_nfe = mocker.patch("pipeline.extract.request_nfe", return_value=[])
 
     # Act
-    result = pipeline.extract.get_nfe_data(organ_code="36000", year_emission=2025)
+    result = extract.get_nfe_data(organ_code="36000", year_emission=2025)
 
     # Assert
     assert result == []
@@ -146,7 +167,7 @@ def test_get_nfe_data_empty_first_page(mocker):
 
 
 @pytest.mark.unit
-def test_get_nfe_data_reaches_max_pages(mocker, mock_nfe_api_response):
+def test_get_nfe_data_max_pages_limit(mocker, mock_nfe_api_response):
     """
     Tests if the `get_nfe_data` function stops seeking after reaching the pages limit (max_pages).
     """
@@ -156,9 +177,7 @@ def test_get_nfe_data_reaches_max_pages(mocker, mock_nfe_api_response):
     )
 
     # Act
-    result = pipeline.extract.get_nfe_data(
-        organ_code="36000", year_emission=2025, max_pages=2
-    )
+    result = extract.get_nfe_data(organ_code="36000", year_emission=2025, max_pages=2)
 
     # Assert
     assert len(result) == 4  # Two pages with two records each
@@ -170,25 +189,20 @@ def test_get_nfe_data_api_exception(mocker, mock_nfe_api_response):
     """
     Tests if the function `get_nfe_data` continues collecting the data to the page with API failure
     and interrupts after the exception.
-
-    Scenario:
-        - First page returns data
-        - Second Page generates exception
-        - You must return only data from the first page
     """
     # Arrange
     simulated_api_response = [
         mock_nfe_api_response["nfe_2025"],
         Exception("API error"),
     ]
-    mock_request = mocker.patch(
+    mock_request_nfe = mocker.patch(
         "pipeline.extract.request_nfe", side_effect=simulated_api_response
     )
 
     # Act
-    result = pipeline.extract.get_nfe_data(organ_code="36000", year_emission=2025)
+    result = extract.get_nfe_data(organ_code="36000", year_emission=2025)
 
     # Assert
     assert len(result) == 2
     assert result == mock_nfe_api_response["nfe_2025"]
-    assert mock_request.call_count == 2
+    assert mock_request_nfe.call_count == 2
