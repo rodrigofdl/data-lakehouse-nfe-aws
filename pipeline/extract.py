@@ -45,16 +45,14 @@ def request_nfe(
     api_key = api_key or os.getenv("API_KEY")
 
     if not api_url or api_url.strip() == "":
-        logger.error(
+        raise MissingAPIConfigError(
             "API_URL não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
         )
-        raise MissingAPIConfigError("API_URL ausente")
 
     if not api_key or api_key.strip() == "":
-        logger.error(
+        raise MissingAPIConfigError(
             "API_KEY não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
         )
-        raise MissingAPIConfigError("API_KEY ausente")
 
     headers = {"accept": "*/*", "chave-api-dados": api_key}
     parameters = {"codigoOrgao": organ_code, "pagina": page_number}
@@ -158,6 +156,6 @@ if __name__ == "__main__":
         data = get_nfe_data(organ_code=organ_code, year_emission=year_emission)
         print(json.dumps(data, indent=2, ensure_ascii=False))
     except MissingAPIConfigError as config_error:
-        print(f"Configuração de API ausente: {config_error}")
+        print(f"Erro de configuração da API: {config_error}")
     except Exception as general_error:
         print(f"Erro inesperado durante a execução: {general_error}")

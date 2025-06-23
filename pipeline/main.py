@@ -37,11 +37,11 @@ def run_pipeline():
 
         if not nfe_data:
             logger.warning(
-                "Nenhuma NFe foi encontrada para o filtro informado. Encerrando a busca."
+                "Nenhuma NFe foi encontrada para o filtro informado. Pipeline encerrado."
             )
             return
 
-        # Transformação
+        # Transform
         df = transform.prepare_dataframe(all_nfe=nfe_data)
 
         if df.empty:
@@ -50,7 +50,7 @@ def run_pipeline():
             )
             return
 
-        # Save the data to S3 in Parquet format with partitioning
+        # Load
         load.save_parquet_partitioned(df=df)
 
         logger.info("Pipeline concluído com sucesso.")
@@ -59,13 +59,13 @@ def run_pipeline():
         logger.error(f"Erro de configuração da API: {e}")
 
     except DataTransformationError as e:
-        logger.error(f"Erro durante a transformação de dados: {e}")
+        logger.error(e)
 
     except MissingS3PathError as e:
         logger.error(f"Erro de configuração do caminho S3: {e}")
 
     except LoadError as e:
-        logger.error(f"Erro durante o carregamento para o S3: {e}")
+        logger.error(e)
 
     except Exception as e:
         logger.exception(f"Erro inesperado no pipeline: {e}")

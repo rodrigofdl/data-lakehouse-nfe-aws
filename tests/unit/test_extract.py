@@ -13,17 +13,17 @@ def mock_nfe_api_response():
     Fixture that provides different examples of response from API of NFe for the tests.
     """
     return {
-        "nfe_2025": [
-            {"dataEmissao": "01/01/2025", "id": 1},
-            {"dataEmissao": "15/02/2025", "id": 2},
-        ],
         "nfe_2024": [
-            {"dataEmissao": "31/12/2024", "id": 3},
+            {"dataEmissao": "01/01/2024", "id": 1},
+            {"dataEmissao": "15/02/2024", "id": 2},
+        ],
+        "nfe_2023": [
+            {"dataEmissao": "31/12/2023", "id": 3},
         ],
         "mixed_nfe": [
-            {"dataEmissao": "01/01/2025", "id": 1},
-            {"dataEmissao": "15/02/2025", "id": 2},
-            {"dataEmissao": "31/12/2024", "id": 3},
+            {"dataEmissao": "01/01/2024", "id": 1},
+            {"dataEmissao": "15/02/2024", "id": 2},
+            {"dataEmissao": "31/12/2023", "id": 3},
         ],
     }
 
@@ -82,7 +82,7 @@ def test_request_nfe_missing_api_url(mocker):
     """
     mocker.patch.dict("os.environ", {"API_KEY": "test_key"}, clear=True)
 
-    with pytest.raises(MissingAPIConfigError, match="API_URL ausente"):
+    with pytest.raises(MissingAPIConfigError, match="API_URL não encontrada"):
         extract.request_nfe(organ_code="36000", page_number=1)
 
 
@@ -93,7 +93,7 @@ def test_request_nfe_missing_api_key(mocker):
     """
     mocker.patch.dict("os.environ", {"API_URL": "http://example.com/api"}, clear=True)
 
-    with pytest.raises(MissingAPIConfigError, match="API_KEY ausente"):
+    with pytest.raises(MissingAPIConfigError, match="API_KEY não encontrada"):
         extract.request_nfe(organ_code="36000", page_number=1)
 
 
@@ -104,12 +104,12 @@ def test_filter_nfe_per_year_sucess(mock_nfe_api_response):
     """
     # Arrange & Act
     filtered_data = extract.filter_nfe_per_year(
-        api_response=mock_nfe_api_response["mixed_nfe"], year_emission=2025
+        api_response=mock_nfe_api_response["mixed_nfe"], year_emission=2024
     )
 
     # Assert
     assert len(filtered_data) == 2
-    assert filtered_data == mock_nfe_api_response["nfe_2025"]
+    assert filtered_data == mock_nfe_api_response["nfe_2024"]
 
 
 @pytest.mark.unit
@@ -134,7 +134,7 @@ def test_get_nfe_data_success(mocker, mock_nfe_api_response):
     # Arrange
     simulated_api_response = [
         mock_nfe_api_response["mixed_nfe"],
-        mock_nfe_api_response["nfe_2024"],
+        mock_nfe_api_response["nfe_2023"],
         [],  # Simulates the end of the pagess
     ]
     mock_request_nfe = mocker.patch(
@@ -142,11 +142,11 @@ def test_get_nfe_data_success(mocker, mock_nfe_api_response):
     )
 
     # Act
-    result = extract.get_nfe_data(organ_code="36000", year_emission=2025)
+    result = extract.get_nfe_data(organ_code="36000", year_emission=2024)
 
     # Assert
     assert len(result) == 2
-    assert result == mock_nfe_api_response["nfe_2025"]
+    assert result == mock_nfe_api_response["nfe_2024"]
     assert mock_request_nfe.call_count == 3
 
 
@@ -159,7 +159,7 @@ def test_get_nfe_data_empty_first_page(mocker):
     mock_request_nfe = mocker.patch("pipeline.extract.request_nfe", return_value=[])
 
     # Act
-    result = extract.get_nfe_data(organ_code="36000", year_emission=2025)
+    result = extract.get_nfe_data(organ_code="36000", year_emission=2024)
 
     # Assert
     assert result == []
@@ -173,11 +173,11 @@ def test_get_nfe_data_max_pages_limit(mocker, mock_nfe_api_response):
     """
     # Arrange
     mock_request_nfe = mocker.patch(
-        "pipeline.extract.request_nfe", return_value=mock_nfe_api_response["nfe_2025"]
+        "pipeline.extract.request_nfe", return_value=mock_nfe_api_response["nfe_2024"]
     )
 
     # Act
-    result = extract.get_nfe_data(organ_code="36000", year_emission=2025, max_pages=2)
+    result = extract.get_nfe_data(organ_code="36000", year_emission=2024, max_pages=2)
 
     # Assert
     assert len(result) == 4  # Two pages with two records each
@@ -192,7 +192,7 @@ def test_get_nfe_data_api_exception(mocker, mock_nfe_api_response):
     """
     # Arrange
     simulated_api_response = [
-        mock_nfe_api_response["nfe_2025"],
+        mock_nfe_api_response["nfe_2024"],
         Exception("API error"),
     ]
     mock_request_nfe = mocker.patch(
@@ -200,9 +200,9 @@ def test_get_nfe_data_api_exception(mocker, mock_nfe_api_response):
     )
 
     # Act
-    result = extract.get_nfe_data(organ_code="36000", year_emission=2025)
+    result = extract.get_nfe_data(organ_code="36000", year_emission=2024)
 
     # Assert
     assert len(result) == 2
-    assert result == mock_nfe_api_response["nfe_2025"]
+    assert result == mock_nfe_api_response["nfe_2024"]
     assert mock_request_nfe.call_count == 2

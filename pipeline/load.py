@@ -38,10 +38,9 @@ def save_parquet_partitioned(
     s3_base_path = s3_base_path or os.getenv("S3_BASE_PATH")
 
     if not s3_base_path or s3_base_path.strip() == "":
-        logger.error(
-            "s3_base_path não encontrado. Certifique-se de que o arquivo .env está configurado corretamente."
+        raise MissingS3PathError(
+            "Parâmetro s3_base_path não encontrado. Certifique-se de que o arquivo .env está configurado corretamente."
         )
-        raise MissingS3PathError("Parâmetro s3_base_path ausente ou vazio.")
 
     if df.empty:
         logger.warning("DataFrame vazio. Nenhum dado será gravado no S3.")
@@ -73,11 +72,10 @@ def save_parquet_partitioned(
             filesystem=s3_fs,
         )
 
-        logger.info(f"Data gravada com sucesso no S3 em: {s3_base_path}")
+        logger.info(f"Dados gravados com sucesso no S3 em: {s3_base_path}")
 
     except Exception as e:
-        logger.error(f"Erro ao salvar o DataFrame particionado no S3: {e}")
-        raise LoadError(f"Falha ao carregar os dados no S3: {e}")
+        raise LoadError(f"Erro durante o carregamento para o S3: {e}")
 
 
 if __name__ == "__main__":
@@ -117,6 +115,6 @@ if __name__ == "__main__":
             df=example_df, s3_base_path="s3://meu-bucket/raw/notas_fiscais_partitioned"
         )
     except MissingS3PathError as e:
-        print(f"Erro de configuração: {e}")
+        print(f"Erro de configuração do caminho S3: {e}")
     except LoadError as e:
-        print(f"Erro durante o load: {e}")
+        print(e)
