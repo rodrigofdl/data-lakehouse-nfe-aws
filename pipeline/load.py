@@ -72,7 +72,7 @@ def save_parquet_partitioned(
             filesystem=s3_fs,
         )
 
-        logger.info(f"Data gravada com sucesso no S3 em: {s3_base_path}")
+        logger.info(f"Dados gravados com sucesso no S3 em: {s3_base_path}")
 
     except Exception as e:
         raise LoadError(f"Erro durante o carregamento para o S3: {e}")

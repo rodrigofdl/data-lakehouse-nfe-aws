@@ -37,11 +37,11 @@ def run_pipeline():
 
         if not nfe_data:
             logger.warning(
-                "Nenhuma NFe foi encontrada para o filtro informado. Encerrando a busca."
+                "Nenhuma NFe foi encontrada para o filtro informado. Pipeline encerrado."
             )
             return
 
-        # Transformação
+        # Transform
         df = transform.prepare_dataframe(all_nfe=nfe_data)
 
         if df.empty:
@@ -50,7 +50,7 @@ def run_pipeline():
             )
             return
 
-        # Save the data to S3 in Parquet format with partitioning
+        # Load
         load.save_parquet_partitioned(df=df)
 
         logger.info("Pipeline concluído com sucesso.")
