@@ -25,13 +25,22 @@ def test_save_partitioned_with_existing_partition(mocker, mock_s3_fs):
     """
     # Arrange
     mock_write_dataset = mocker.patch("pipeline.load.ds.write_dataset")
-    mock_logger_info = mocker.patch("pipeline.load.logger.info")
 
     mock_s3_fs.isdir.return_value = True  # Simulates that the partition exists
 
-    df = pd.DataFrame({"produto": ["A"], "valor": [100], "ano": [2024], "mes": [6]})
+    df = pd.DataFrame(
+        {
+            "produto": ["A"],
+            "valor": [100],
+            "codigoOrgaoDestinatario": ["002"],
+            "ano": [2024],
+            "mes": [6],
+        }
+    )
     s3_base_path = "s3://meu-bucket/dados"
-    expected_partition_path = f"{s3_base_path}/ano=2024/mes=6"
+    expected_partition_path = (
+        f"{s3_base_path}/codigoOrgaoDestinatario=002/ano=2024/mes=6"
+    )
 
     # Act
     load.save_parquet_partitioned(df, s3_base_path)
@@ -45,7 +54,7 @@ def test_save_partitioned_with_existing_partition(mocker, mock_s3_fs):
     assert mock_write_dataset.call_count == 1
     call_args = mock_write_dataset.call_args.kwargs
     assert call_args["base_dir"] == s3_base_path
-    assert call_args["partitioning"] == ["ano", "mes"]
+    assert call_args["partitioning"] == ["codigoOrgaoDestinatario", "ano", "mes"]
     assert isinstance(call_args["data"], pa.Table)
 
 
@@ -58,7 +67,7 @@ def test_save_partitioned_with_new_partition(mocker, mock_s3_fs):
     mock_write_dataset = mocker.patch("pipeline.load.ds.write_dataset")
     mock_s3_fs.isdir.return_value = False  # Simulates that the partition does not exist
 
-    df = pd.DataFrame({"ano": [2024], "mes": [7]})
+    df = pd.DataFrame({"codigoOrgaoDestinatario": ["002"], "ano": [2024], "mes": [7]})
     s3_base_path = "s3://meu-bucket/dados"
 
     # Act
@@ -75,7 +84,7 @@ def test_save_parquet_partitioned_empty_s3_base_path():
     Test if save_parquet_partitioned raises MissingS3PathError when s3_base_path is empty.
     """
     # Arrange
-    df = pd.DataFrame({"ano": [2024], "mes": [7]})
+    df = pd.DataFrame({"codigoOrgaoDestinatario": ["002"], "ano": [2024], "mes": [7]})
     invalid_path = "   "  # Simulates empty string or string with spaces
 
     # Act & Assert
@@ -95,7 +104,7 @@ def test_save_parquet_partitioned_raises_load_error_on_write_failure(mocker):
 
     mock_write_dataset.side_effect = Exception("Falha de gravação no S3")
 
-    df = pd.DataFrame({"ano": [2024], "mes": [7]})
+    df = pd.DataFrame({"codigoOrgaoDestinatario": ["002"], "ano": [2024], "mes": [7]})
     s3_base_path = "s3://fake-bucket/data"
 
     # Act & Assert

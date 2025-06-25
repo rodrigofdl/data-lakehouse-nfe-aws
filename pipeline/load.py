@@ -49,11 +49,15 @@ def save_parquet_partitioned(
     try:
         s3_fs = S3FileSystem()
 
+        df["codigoOrgaoDestinatario"] = df["codigoOrgaoDestinatario"].astype(str)
+
         # Exclude existing partitions that are in dataframe (avoids duplicity)
-        years_months = df[["ano", "mes"]].dropna().drop_duplicates()
+        partitions = (
+            df[["codigoOrgaoDestinatario", "ano", "mes"]].dropna().drop_duplicates()
+        )
 
         # Check if the base path exists, if yes, delete its contents
-        for _, row in years_months.iterrows():
+        for _, row in partitions.iterrows():
             partition_path = (
                 f"{s3_base_path}/"
                 f"codigoOrgaoDestinatario={row['codigoOrgaoDestinatario']}/"
