@@ -25,7 +25,7 @@ def save_parquet_partitioned(
     df: pd.DataFrame, s3_base_path: Optional[str] = None
 ) -> None:
     """
-    Saves Dataframe in Parquet format partitioned by 'ano' and 'mes' in S3.
+    Saves Dataframe in Parquet format partitioned by 'codigoOrgaoDestinatario', 'ano' and 'mes' in S3.
 
     Parameters:
         df (pd.DataFrame): Dataframe Treaty.
@@ -55,7 +55,9 @@ def save_parquet_partitioned(
         # Check if the base path exists, if yes, delete its contents
         for _, row in years_months.iterrows():
             partition_path = (
-                f"{s3_base_path}/ano={int(row['ano'])}/mes={int(row['mes'])}"
+                f"{s3_base_path}/"
+                f"codigoOrgaoDestinatario={row['codigoOrgaoDestinatario']}/"
+                f"ano={int(row['ano'])}/mes={int(row['mes'])}"
             )
             if s3_fs.isdir(partition_path):
                 s3_fs.delete_dir_contents(partition_path)
@@ -68,7 +70,7 @@ def save_parquet_partitioned(
             data=table,
             base_dir=s3_base_path,
             format="parquet",
-            partitioning=["ano", "mes"],
+            partitioning=["codigoOrgaoDestinatario", "ano", "mes"],
             filesystem=s3_fs,
         )
 
