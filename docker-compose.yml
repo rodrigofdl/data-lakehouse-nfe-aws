@@ -1,0 +1,11 @@
+services:
+  pipeline:
+    build:
+      context: .
+    container_name: data-pipeline-nfe
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: ["python", "pipeline/main.py"]
