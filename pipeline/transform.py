@@ -32,12 +32,12 @@ def prepare_dataframe(all_nfe: list[dict]) -> pd.DataFrame:
     try:
         df = pd.DataFrame(all_nfe)
 
-        # Correct ValorNotafiscal: Remove the thousands separator, change comma to point, convert to float
+        # Correct ValorNotafiscal:
         df["valorNotaFiscal"] = (
             df["valorNotaFiscal"]
-            .str.replace(".", "", regex=False)
-            .str.replace(",", ".", regex=False)
-            .astype(float)
+            .str.replace(".", "", regex=False)  # remove the thousands separator
+            .str.replace(",", ".", regex=False)  # change comma to point
+            .astype(float)  # convert to float
         )
 
         # Convert date columns
@@ -82,8 +82,6 @@ def prepare_dataframe(all_nfe: list[dict]) -> pd.DataFrame:
 
 if __name__ == "__main__":
     # Example of manual transformation execution
-    import json
-
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
     )

@@ -31,7 +31,8 @@ def mock_nfe_api_response():
 @pytest.mark.unit
 def test_request_nfe_success(mocker):
     """
-    Tests if the `request_nfe' function returns the data correctly when the API responds successfully (status 200).
+    Tests if the `request_nfe' function returns the data correctly
+    when the API responds successfully (status 200).
     """
     # Arrange
     mock_get = mocker.patch("requests.get")
@@ -53,7 +54,8 @@ def test_request_nfe_success(mocker):
 @pytest.mark.unit
 def test_request_nfe_retry_on_failure(mocker):
     """
-    Tests if the `request_nfe' function tries again and throws exception after request failures.
+    Tests if the `request_nfe' function tries again
+    and throws exception after request failures.
     """
     # Arrange
     mock_get = mocker.patch("requests.get")
@@ -78,7 +80,8 @@ def test_request_nfe_retry_on_failure(mocker):
 @pytest.mark.unit
 def test_request_nfe_missing_api_url(mocker):
     """
-    Tests whether the `request_nfe` function throws an error when the API URL is not set.
+    Tests whether the `request_nfe` function throws an error
+    when the API URL is not set.
     """
     mocker.patch.dict("os.environ", {"API_KEY": "test_key"}, clear=True)
 
@@ -89,7 +92,8 @@ def test_request_nfe_missing_api_url(mocker):
 @pytest.mark.unit
 def test_request_nfe_missing_api_key(mocker):
     """
-    Tests whether the `request_nfe` function throws an error when the API key is not set.
+    Tests whether the `request_nfe` function throws an error
+    when the API key is not set.
     """
     mocker.patch.dict("os.environ", {"API_URL": "http://example.com/api"}, clear=True)
 
@@ -115,7 +119,8 @@ def test_filter_nfe_per_year_sucess(mock_nfe_api_response):
 @pytest.mark.unit
 def test_filter_nfe_per_year_no_match(mock_nfe_api_response):
     """
-    Tests if the `filter_nfe_per_year` function returns an empty list when no data matches the specified year.
+    Tests if the `filter_nfe_per_year` function returns an empty list
+    when no data matches the specified year.
     """
     # Arrange & Act
     filtered_data = extract.filter_nfe_per_year(
@@ -129,7 +134,8 @@ def test_filter_nfe_per_year_no_match(mock_nfe_api_response):
 @pytest.mark.unit
 def test_get_nfe_data_success(mocker, mock_nfe_api_response):
     """
-    Tests the complete flow of the function `get_nfe_data`, simulating multiple API pages.
+    Tests the complete flow of the function `get_nfe_data`,
+    simulating multiple API pages.
     """
     # Arrange
     simulated_api_response = [
@@ -153,7 +159,8 @@ def test_get_nfe_data_success(mocker, mock_nfe_api_response):
 @pytest.mark.unit
 def test_get_nfe_data_empty_first_page(mocker):
     """
-    Tests if the `get_nfe_data` function returns an empty list when the first page of the API response is empty.
+    Tests if the `get_nfe_data` function returns an empty list
+    when the first page of the API response is empty.
     """
     # Arrange
     mock_request_nfe = mocker.patch("pipeline.extract.request_nfe", return_value=[])
@@ -169,7 +176,8 @@ def test_get_nfe_data_empty_first_page(mocker):
 @pytest.mark.unit
 def test_get_nfe_data_max_pages_limit(mocker, mock_nfe_api_response):
     """
-    Tests if the `get_nfe_data` function stops seeking after reaching the pages limit (max_pages).
+    Tests if the `get_nfe_data` function stops seeking
+    after reaching the pages limit (max_pages).
     """
     # Arrange
     mock_request_nfe = mocker.patch(
@@ -187,8 +195,8 @@ def test_get_nfe_data_max_pages_limit(mocker, mock_nfe_api_response):
 @pytest.mark.unit
 def test_get_nfe_data_api_exception(mocker, mock_nfe_api_response):
     """
-    Tests if the function `get_nfe_data` continues collecting the data to the page with API failure
-    and interrupts after the exception.
+    Tests if the function `get_nfe_data` continues collecting the data to the page
+    with API failure and interrupts after the exception.
     """
     # Arrange
     simulated_api_response = [

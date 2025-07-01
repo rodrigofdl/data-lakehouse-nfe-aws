@@ -25,11 +25,12 @@ def save_parquet_partitioned(
     df: pd.DataFrame, s3_base_path: Optional[str] = None
 ) -> None:
     """
-    Saves Dataframe in Parquet format partitioned by 'codigoOrgaoDestinatario', 'ano' and 'mes' in S3.
+    Saves Dataframe in Parquet format partitioned by
+    'codigoOrgaoDestinatario', 'ano' and 'mes' in S3.
 
     Parameters:
         df (pd.DataFrame): Dataframe Treaty.
-        s3_base_path (str): Base path on S3 (ex: 's3://meu-bucket-dados/raw/notas_fiscais_partitioned')
+        s3_base_path (str): (ex: 's3://meu-bucket-dados/raw/notas_fiscais_partitioned')
 
     Raises:
         MissingS3PathError: If s3_base_path is missing.
@@ -39,7 +40,8 @@ def save_parquet_partitioned(
 
     if not s3_base_path or s3_base_path.strip() == "":
         raise MissingS3PathError(
-            "Parâmetro s3_base_path não encontrado. Certifique-se de que o arquivo .env está configurado corretamente."
+            "Parâmetro s3_base_path não encontrado. "
+            "Certifique-se de que o arquivo .env está configurado corretamente."
         )
 
     if df.empty:
@@ -86,7 +88,8 @@ def save_parquet_partitioned(
 
 if __name__ == "__main__":
     # Example of load execution manual
-    import pandas as pd
+    # If it works correctly, it will generate a LoadError
+    import pandas as pd  # noqa: F811
 
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

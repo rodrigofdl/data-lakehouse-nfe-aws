@@ -46,12 +46,14 @@ def request_nfe(
 
     if not api_url or api_url.strip() == "":
         raise MissingAPIConfigError(
-            "API_URL não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
+            "API_URL não encontrada. "
+            "Certifique-se de que o arquivo .env está configurado corretamente."
         )
 
     if not api_key or api_key.strip() == "":
         raise MissingAPIConfigError(
-            "API_KEY não encontrada. Certifique-se de que o arquivo .env está configurado corretamente."
+            "API_KEY não encontrada. "
+            "Certifique-se de que o arquivo .env está configurado corretamente."
         )
 
     headers = {"accept": "*/*", "chave-api-dados": api_key}
@@ -116,7 +118,8 @@ def get_nfe_data(
 
             if not api_response:
                 logger.info(
-                    f"Nenhum dado retornado na página {page_number}. Finalizando coleta."
+                    f"Nenhum dado retornado na página {page_number}. "
+                    "Finalizando coleta."
                 )
                 break
 
@@ -126,7 +129,7 @@ def get_nfe_data(
             all_nfe.extend(filtered_nfe)
 
             logger.info(
-                f"Página {page_number} - {len(filtered_nfe)} registros de {year_emission} encontrados."
+                f"Página {page_number} - {len(filtered_nfe)} registros de {year_emission} encontrados."  # noqa: E501
             )
 
             page_number += 1
@@ -136,7 +139,7 @@ def get_nfe_data(
             break
 
     logger.info(
-        f"{len(all_nfe)} NFe para o órgão {organ_code} no ano {year_emission} coletadas."
+        f"{len(all_nfe)} NFe para o órgão {organ_code} no ano {year_emission} coletadas."  # noqa: E501
     )
 
     return all_nfe

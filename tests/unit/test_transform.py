@@ -76,7 +76,8 @@ def test_prepare_dataframe_invalid_valorNotaFiscal(mock_nfe_data):
 @pytest.mark.unit
 def test_prepare_dataframe_invalid_dates(mock_nfe_data):
     """
-    Test if prepare_dataframe converts invalid date strings into NaT and NaN for derived columns.
+    Test if prepare_dataframe converts invalid date strings
+    into NaT and NaN for derived columns.
     """
     # Arrange
     broken_data = mock_nfe_data.copy()

@@ -81,7 +81,8 @@ def test_save_partitioned_with_new_partition(mocker, mock_s3_fs):
 @pytest.mark.unit
 def test_save_parquet_partitioned_empty_s3_base_path():
     """
-    Test if save_parquet_partitioned raises MissingS3PathError when s3_base_path is empty.
+    Test if save_parquet_partitioned raises MissingS3PathError
+    when s3_base_path is empty.
     """
     # Arrange
     df = pd.DataFrame({"codigoOrgaoDestinatario": ["002"], "ano": [2024], "mes": [7]})
