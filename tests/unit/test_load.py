@@ -1,10 +1,10 @@
-import pytest
 import pandas as pd
 import pyarrow as pa
+import pytest
 
 # Imports Local Libraries
 from pipeline import load
-from pipeline.load import MissingS3PathError, LoadError
+from pipeline.load import LoadError, MissingS3PathError
 
 
 @pytest.fixture

@@ -3,8 +3,8 @@ import requests
 from tenacity import RetryError
 
 # Imports Local Libraries
-from pipeline import extract
-from pipeline.extract import MissingAPIConfigError
+from pipeline import ingestion
+from pipeline.ingestion import MissingAPIConfigError
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ def test_request_nfe_success(mocker):
     mock_get.return_value.json.return_value = [{"data": "example"}]
 
     # Act
-    result = extract.request_nfe(
+    result = ingestion.request_nfe(
         organ_code="36000",
         page_number=1,
         api_key="test_key",
@@ -63,7 +63,7 @@ def test_request_nfe_retry_on_failure(mocker):
 
     # Act & Assert
     with pytest.raises(RetryError) as exc_info:
-        extract.request_nfe(
+        ingestion.request_nfe(
             organ_code="36000",
             page_number=1,
             api_key="test_key",
@@ -86,7 +86,7 @@ def test_request_nfe_missing_api_url(mocker):
     mocker.patch.dict("os.environ", {"API_KEY": "test_key"}, clear=True)
 
     with pytest.raises(MissingAPIConfigError, match="API_URL não encontrada"):
-        extract.request_nfe(organ_code="36000", page_number=1)
+        ingestion.request_nfe(organ_code="36000", page_number=1)
 
 
 @pytest.mark.unit
@@ -98,7 +98,7 @@ def test_request_nfe_missing_api_key(mocker):
     mocker.patch.dict("os.environ", {"API_URL": "http://example.com/api"}, clear=True)
 
     with pytest.raises(MissingAPIConfigError, match="API_KEY não encontrada"):
-        extract.request_nfe(organ_code="36000", page_number=1)
+        ingestion.request_nfe(organ_code="36000", page_number=1)
 
 
 @pytest.mark.unit
@@ -107,7 +107,7 @@ def test_filter_nfe_per_year_sucess(mock_nfe_api_response):
     Tests if the `filter_nfe_per_year` function correctly filters data by year.
     """
     # Arrange & Act
-    filtered_data = extract.filter_nfe_per_year(
+    filtered_data = ingestion.filter_nfe_per_year(
         api_response=mock_nfe_api_response["mixed_nfe"], year_emission=2024
     )
 
@@ -123,7 +123,7 @@ def test_filter_nfe_per_year_no_match(mock_nfe_api_response):
     when no data matches the specified year.
     """
     # Arrange & Act
-    filtered_data = extract.filter_nfe_per_year(
+    filtered_data = ingestion.filter_nfe_per_year(
         api_response=mock_nfe_api_response["mixed_nfe"], year_emission=2100
     )
 
@@ -148,7 +148,7 @@ def test_get_nfe_data_success(mocker, mock_nfe_api_response):
     )
 
     # Act
-    result = extract.get_nfe_data(organ_code="36000", year_emission=2024)
+    result = ingestion.get_nfe_data(organ_code="36000", year_emission=2024)
 
     # Assert
     assert len(result) == 2
@@ -166,7 +166,7 @@ def test_get_nfe_data_empty_first_page(mocker):
     mock_request_nfe = mocker.patch("pipeline.extract.request_nfe", return_value=[])
 
     # Act
-    result = extract.get_nfe_data(organ_code="36000", year_emission=2024)
+    result = ingestion.get_nfe_data(organ_code="36000", year_emission=2024)
 
     # Assert
     assert result == []
@@ -185,7 +185,7 @@ def test_get_nfe_data_max_pages_limit(mocker, mock_nfe_api_response):
     )
 
     # Act
-    result = extract.get_nfe_data(organ_code="36000", year_emission=2024, max_pages=2)
+    result = ingestion.get_nfe_data(organ_code="36000", year_emission=2024, max_pages=2)
 
     # Assert
     assert len(result) == 4  # Two pages with two records each
@@ -208,7 +208,7 @@ def test_get_nfe_data_api_exception(mocker, mock_nfe_api_response):
     )
 
     # Act
-    result = extract.get_nfe_data(organ_code="36000", year_emission=2024)
+    result = ingestion.get_nfe_data(organ_code="36000", year_emission=2024)
 
     # Assert
     assert len(result) == 2

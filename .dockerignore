@@ -2,15 +2,25 @@ __pycache__/
 *.py[cod]
 
 .venv/
-*.env
+.env
 
 .vscode/
 
 .pytest_cache/
-
-*.coverage
+.coverage
 htmlcov/
-
 *.log
 
 tests/
+
+.git
+.gitignore
+.gitkeep
+.github/
+
+LICENSE
+README.md
+setup.cfg
+pytest.ini
+Makefile
+.dockerignore

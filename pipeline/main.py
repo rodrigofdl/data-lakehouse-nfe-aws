@@ -1,75 +1,29 @@
-import logging
-from dotenv import load_dotenv
-
-# Imports Local Modules
-from pipeline import extract, transform, load
-from pipeline.extract import MissingAPIConfigError
-from pipeline.transform import DataTransformationError
-from pipeline.load import MissingS3PathError, LoadError
-
-# Logging Configuration: Displays at the terminal and saves in file
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler("pipeline/logs/pipeline.log", mode="w", encoding="utf-8"),
-    ],
-)
-logger = logging.getLogger(__name__)
-
-# Load environment variables from .env file
-load_dotenv()
+from ingestion.nfe_ingestion import run_ingestion
+from ingestion.logger import logger
 
 
-def run_pipeline():
+def main():
+    """
+    Input point for manual execution/local tests.
+    """
     try:
-        # Input parameters for collection
-        organ_code = "36000"
-        year_emission = 2024
-
-        logger.info("Iniciando o pipeline...")
-
-        # Extract
-        nfe_data = extract.get_nfe_data(
-            organ_code=organ_code, year_emission=year_emission
+        final_s3_key = run_ingestion(
+            organ_code="36000",
+            year_emission=2024,
+            page_number=1
+            max_pages=1,
         )
-
-        if not nfe_data:
-            logger.warning(
-                "Nenhuma NFe foi encontrada para o filtro informado. Pipeline encerrado."
-            )
+        if not final_s3_key:
+            print("Extração concluída, mas nenhum dado foi salvo no S3.")
             return
 
-        # Transform
-        df = transform.prepare_dataframe(all_nfe=nfe_data)
+        print(f"Arquivo salvo em: {final_s3_key}")
 
-        if df.empty:
-            logger.warning(
-                "DataFrame resultante da transformação está vazio. Pipeline encerrado."
-            )
-            return
-
-        # Load
-        load.save_parquet_partitioned(df=df)
-
-        logger.info("Pipeline concluído com sucesso.")
-
-    except MissingAPIConfigError as e:
-        logger.error(f"Erro de configuração da API: {e}")
-
-    except DataTransformationError as e:
-        logger.error(e)
-
-    except MissingS3PathError as e:
-        logger.error(f"Erro de configuração do caminho S3: {e}")
-
-    except LoadError as e:
-        logger.error(e)
-
+    except EnvironmentError as e:
+        logger.error(f"Erro de configuração: {e}")
     except Exception as e:
-        logger.exception(f"Erro inesperado no pipeline: {e}")
+        logger.error(f"Erro inesperado: {e}")
 
 
 if __name__ == "__main__":
-    run_pipeline()
+    main()
