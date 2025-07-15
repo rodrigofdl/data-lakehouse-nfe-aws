@@ -2,7 +2,7 @@ import json
 from typing import Optional
 
 import boto3
-from config import (
+from utils import (
     AWS_ACCESS_KEY_ID,
     AWS_REGION_NAME,
     AWS_SECRET_ACCESS_KEY,

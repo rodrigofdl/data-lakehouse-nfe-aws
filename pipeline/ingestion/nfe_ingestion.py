@@ -1,10 +1,10 @@
 from typing import Optional
 
-from pipeline.ingestion.nfe_collector import get_nfe_data
-from config import S3_BUCKET_NAME
 from logger import logger
+from utils import S3_BUCKET_NAME, build_s3_key
+
+from pipeline.ingestion.nfe_api import get_nfe_data
 from pipeline.ingestion.nfe_storage import upload_to_s3
-from utils import build_s3_key
 
 
 def run_ingestion(
